@@ -4,5 +4,12 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"glfw3.h": "c",
+			"gl.h": "c",
+			"glad.h": "c",
+			"cstdlib": "c"
+		}
+	}
 }
