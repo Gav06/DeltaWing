@@ -126,7 +126,6 @@ int main(void) {
     check_glsl_prog_error(shader_program, GL_LINK_STATUS);
 
     int timeUniform = glGetUniformLocation(shader_program, "uTime");
-    printf("uniform: %d\n", timeUniform);
 
     int frames = 0;
     const long long startTime = current_time_millis();
