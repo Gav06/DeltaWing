@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
-#include <time.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h> 
+
+#include "renderer.h"
 
 // skidded from stackoverflow <3
 int64_t current_time_millis() {
@@ -98,7 +99,7 @@ int main(void) {
 
             "void main() {                              \n"
             "   float offset = gl_FragCoord.x / resolution.x;\n"
-            "   float hue = mod(mod(uTime / 1000.0, 1.0) + offset, 1.0);\n"
+            "   float hue = mod(mod(uTime / 2000.0, 1.0) + offset, 1.0);\n"
             "   vec3 rgb = hsbToRgb(hue, 1.0, 1.0);     \n"
             "   diffuseColor = vec4(rgb, 1.0);          \n"
             "}                                          \n";
