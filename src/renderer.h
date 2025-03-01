@@ -1,9 +1,6 @@
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
-typedef struct {
-    int program;
-    
-} Shader;
+GLuint Shader_createProgram(const char* vertexShader, const char* fragShader);
 
-void Shader_createProgram(char* vertexShader, char* fragShader, int* program);
-
-char* Shader_loadShaderSource(char* path);
+const char* Shader_loadShaderSource(const char* path);

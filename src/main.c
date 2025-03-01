@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h> 
-
 #include "renderer.h"
 
 // skidded from stackoverflow <3
@@ -85,44 +82,32 @@ int main(void) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
     const char* fragShader = 
-            "#version 460                               \n"
+            "#version 460                                   \n"
             "const vec2 resolution = vec2(1280.0, 720.0);   \n"
-            "in vec4 gl_FragCoord;                      \n"
-            "out vec4 diffuseColor;                     \n"
-            "uniform float uTime;                       \n"
-
-            "vec3 hsbToRgb(float h, float s, float b) { \n"
+            "in vec4 gl_FragCoord;                          \n"
+            "out vec4 diffuseColor;                         \n"
+            "layout(location = 0) uniform float uTime;      \n"
+            "vec3 hsbToRgb(float h, float s, float b) {     \n"
             "   vec3 rgb = clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);\n"
-            "   rgb = rgb * rgb * (3.0 - 2.0 * rgb);    \n"
-            "   return b * mix(vec3(1.0), rgb, s);      \n"
-            "}                                          \n"
-
-            "void main() {                              \n"
+            "   rgb = rgb * rgb * (3.0 - 2.0 * rgb);        \n"
+            "   return b * mix(vec3(1.0), rgb, s);          \n"
+            "}                                              \n"
+            "void main() {                                  \n"
             "   float offset = gl_FragCoord.x / resolution.x;\n"
             "   float hue = mod(mod(uTime / 2000.0, 1.0) + offset, 1.0);\n"
-            "   vec3 rgb = hsbToRgb(hue, 1.0, 1.0);     \n"
-            "   diffuseColor = vec4(rgb, 1.0);          \n"
-            "}                                          \n";
+            "   vec3 rgb = hsbToRgb(hue, 1.0, 1.0);         \n"
+            "   diffuseColor = vec4(rgb, 1.0);              \n"
+            "}                                              \n";
     
     const char* vertShader =
-            "#version 460                               \n"
-            "in vec3 vertex_pos;                        \n"
-            "void main() {                              \n"
-            "   gl_Position = vec4(vertex_pos, 1.0);    \n"
-            "}                                          \n";
+            "#version 460                                   \n"
+            "in vec3 vertex_pos;                            \n"
+            "void main() {                                  \n"
+            "   gl_Position = vec4(vertex_pos, 1.0);        \n"
+            "}                                              \n";
 
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &vertShader, NULL);
-    glCompileShader(vs);
-    
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &fragShader, NULL);
-    glCompileShader(fs);
+    GLuint shader_program = Shader_createProgram(vertShader, fragShader);
 
-    GLuint shader_program = glCreateProgram();
-    glAttachShader(shader_program, vs);
-    glAttachShader(shader_program, fs);
-    glLinkProgram(shader_program);
     check_glsl_prog_error(shader_program, GL_LINK_STATUS);
 
     int timeUniform = glGetUniformLocation(shader_program, "uTime");
