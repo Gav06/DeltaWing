@@ -4,7 +4,12 @@
 
 #include "renderer.h"
 
-// skidded from stackoverflow <3
+#define DISPLAY_WIDTH 1280
+#define DISPLAY_HEIGHT 720
+
+GLFWwindow* window;
+
+// skidded from stackoverflow
 int64_t current_time_millis() {
   struct timeval time;
   gettimeofday(&time, NULL);
@@ -13,35 +18,23 @@ int64_t current_time_millis() {
   return s1 + s2;
 }
 
-void check_glsl_prog_error(int program, int name) {
-    int code = 0;
-    glGetProgramiv(program, name, &code);
-    if (code == 0) {
-        char* logBuf = malloc(1024 * sizeof(char));
-        glGetProgramInfoLog(program, 1024, NULL, logBuf);
-        printf("%s\n", logBuf);
-    }
-}
-
-void error_callback(int error, const char* description) {
+void errorCallback(int error, const char* description) {
     fprintf(stderr, "Error: %d %s\n", error, description);
 }
 
-int main(void) {
-
+int initGL() {
     if (!glfwInit()) {
         return 1;
     }
-
-    glfwSetErrorCallback(error_callback);
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "DeltaWing", NULL, NULL);
+    window = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
     glfwMakeContextCurrent(window);
+    glfwSetErrorCallback(errorCallback);
 
     if (!window) {
         fprintf(stderr, "Unable to create GLFW window");
@@ -54,18 +47,28 @@ int main(void) {
         return 1;
     }
 
-    // float points[] = {
-    //     -0.5f, -0.5f, 0.0f,
-    //     0.0f, 0.5f, 0.0f,
-    //     0.5f, -0.5f, 0.0f
-    // };
+    return 0;
+}
+
+void runTick() {
+
+}
+
+int main() {
+    if (initGL())
+        return 1;
 
     float points[] = {
-        -1.0f, 1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f
+        // pos (xyz)        // color (rgba)
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f
     };
+
+    Tessellator tes;
+    t_init(&tes);
+
+    printf("Vertex capacity: %d\n", tes.capacity);
 
     const int length = (sizeof(points) / sizeof(float));
 
@@ -77,54 +80,51 @@ int main(void) {
     GLuint vao = 0;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+
+    // vertex attribute 0, for the xyz pos of verticies
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    // location 0, size of 3, size float, normalized: false, stride: 7 floats
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), NULL);
+
+    // vertex attribute 1, for rgba of verticies
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, 7 * sizeof(float), (void*) (sizeof(float) * 3));
 
     const char* fragShader = 
-            "#version 460                                   \n"
-            "const vec2 resolution = vec2(1280.0, 720.0);   \n"
-            "in vec4 gl_FragCoord;                          \n"
-            "out vec4 diffuseColor;                         \n"
-            "layout(location = 0) uniform float uTime;      \n"
-            "vec3 hsbToRgb(float h, float s, float b) {     \n"
-            "   vec3 rgb = clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);\n"
-            "   rgb = rgb * rgb * (3.0 - 2.0 * rgb);        \n"
-            "   return b * mix(vec3(1.0), rgb, s);          \n"
-            "}                                              \n"
-            "void main() {                                  \n"
-            "   float offset = gl_FragCoord.x / resolution.x;\n"
-            "   float hue = mod(mod(uTime / 2000.0, 1.0) + offset, 1.0);\n"
-            "   vec3 rgb = hsbToRgb(hue, 1.0, 1.0);         \n"
-            "   diffuseColor = vec4(rgb, 1.0);              \n"
-            "}                                              \n";
-    
+            "#version 330 core              \n"
+            "in vec4 vertexColor;           \n"
+            "out vec4 diffuseColor;         \n"
+            "void main() {                  \n"
+            "    diffuseColor = vertexColor;\n"
+            "}                              \n";
+
     const char* vertShader =
             "#version 460                                   \n"
-            "in vec3 vertex_pos;                            \n"
+            "layout (location = 0) in vec3 aPos;            \n"
+            "layout (location = 1) in vec4 aColor;          \n"
+            "out vec4 vertexColor;                          \n"
             "void main() {                                  \n"
-            "   gl_Position = vec4(vertex_pos, 1.0);        \n"
+            "   gl_Position = vec4(aPos, 1.0);              \n"
+            "   vertexColor = aColor;                       \n"
             "}                                              \n";
 
-    GLuint shader_program = Shader_createProgram(vertShader, fragShader);
-
-    check_glsl_prog_error(shader_program, GL_LINK_STATUS);
-
-    int timeUniform = glGetUniformLocation(shader_program, "uTime");
+    GLuint shaderProgram = s_createProgram(vertShader, fragShader);
 
     int frames = 0;
     const long long startTime = current_time_millis();
     long long lastFrame = 0;
 
     glfwShowWindow(window);
+
     while (!glfwWindowShouldClose(window)) {
         long long currentFrameTime = current_time_millis() - startTime;
+        runTick();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shader_program);
-        glUniform1f(timeUniform, (float) currentFrameTime);
+        glUseProgram(shaderProgram);
         glBindVertexArray(vao);
-        glDrawArrays(GL_QUADS, 0, 4);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
         glUseProgram(0);
 
@@ -144,7 +144,7 @@ int main(void) {
 
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
-    glDeleteProgram(shader_program);
+    glDeleteProgram(shaderProgram);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
