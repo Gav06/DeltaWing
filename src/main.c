@@ -9,6 +9,25 @@
 
 GLFWwindow* window;
 
+const char* fragShader = 
+    "#version 330 core              \n"
+    "layout (location = 0) out vec4 diffuseColor;         \n"
+    "in vec4 vertexColor;           \n"
+    "void main() {                  \n"
+    "    diffuseColor = vertexColor;\n"
+    "}                              \n";
+
+const char* vertShader =
+    "#version 460                                   \n"
+    "layout (location = 0) in vec3 aPos;            \n"
+    "layout (location = 1) in vec4 aColor;          \n"
+    "out vec4 vertexColor;                          \n"
+    "void main() {                                  \n"
+    "   gl_Position = vec4(aPos, 1.0);              \n"
+    "   vertexColor = aColor;                       \n"
+    "}                                              \n";
+
+
 // skidded from stackoverflow
 int64_t current_time_millis() {
   struct timeval time;
@@ -59,74 +78,41 @@ int main() {
         return 1;
 
     float points[] = {
-        // pos (xyz)        // color (rgba)
         -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f
     };
 
-    Tessellator tes;
-    t_init(&tes);
+    // Renderer tes;
+    // Renderer_init(&tes);
 
-    printf("Vertex capacity: %d\n", tes.capacity);
+    // GLuint vbo = 0;
+    // Renderer_genStaticVBO(&vbo, points, 4, sizeof(float) * 7);
 
-    const int length = (sizeof(points) / sizeof(float));
+    // GLuint vao = 0;
+    // Renderer_genDefaultVAO(&vbo, &vao);
 
-    GLuint vbo = 0;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    // GLuint shaderProgram = Shader_createProgram(vertShader, fragShader);
 
-    GLuint vao = 0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // vertex attribute 0, for the xyz pos of verticies
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // location 0, size of 3, size float, normalized: false, stride: 7 floats
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), NULL);
-
-    // vertex attribute 1, for rgba of verticies
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, 7 * sizeof(float), (void*) (sizeof(float) * 3));
-
-    const char* fragShader = 
-            "#version 330 core              \n"
-            "in vec4 vertexColor;           \n"
-            "out vec4 diffuseColor;         \n"
-            "void main() {                  \n"
-            "    diffuseColor = vertexColor;\n"
-            "}                              \n";
-
-    const char* vertShader =
-            "#version 460                                   \n"
-            "layout (location = 0) in vec3 aPos;            \n"
-            "layout (location = 1) in vec4 aColor;          \n"
-            "out vec4 vertexColor;                          \n"
-            "void main() {                                  \n"
-            "   gl_Position = vec4(aPos, 1.0);              \n"
-            "   vertexColor = aColor;                       \n"
-            "}                                              \n";
-
-    GLuint shaderProgram = s_createProgram(vertShader, fragShader);
-
+    // FPS calculations
     int frames = 0;
     const long long startTime = current_time_millis();
     long long lastFrame = 0;
 
-    glfwShowWindow(window);
 
+    // glUseProgram(shaderProgram);
+    // glBindVertexArray(vao);
+
+    glfwShowWindow(window);
     while (!glfwWindowShouldClose(window)) {
         long long currentFrameTime = current_time_millis() - startTime;
         runTick();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
-        glUseProgram(0);
+        // glUseProgram(shaderProgram);
+        // glBindVertexArray(vao);
+        // glDrawArrays(GL_QUADS, 0, 4);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -142,9 +128,12 @@ int main() {
 
     }
 
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteProgram(shaderProgram);
+    // glUseProgram(0);
+    // glBindVertexArray(0);
+
+    // glDeleteVertexArrays(1, &vao);
+    // glDeleteBuffers(1, &vbo);
+    // glDeleteProgram(shaderProgram);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;

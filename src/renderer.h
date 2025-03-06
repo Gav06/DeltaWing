@@ -15,18 +15,22 @@ typedef struct {
     GLuint vbo;
     GLenum mode;
     Vertex* verticies; // dynamic array of verticies
-    size_t vertexCount;
-    size_t capacity;
+    GLuint vertexCount;
+    GLuint capacity;
     GLuint shaderProgram;
-} Tessellator;
-
-
+} Renderer;
 
 /* Init tessellator */
-void t_init(Tessellator* tes);
+void Renderer_init(Renderer* r);
 
-GLuint s_createProgram(const char* vertexShader, const char* fragShader);
+void Renderer_free(Renderer* r);
 
-void s_checkSrcError(GLuint shader);
+void Renderer_genDefaultVAO(GLuint* vbo, GLuint* vao);
 
-void s_checkProgError(GLuint program);
+void Renderer_genStaticVBO(GLuint* vbo, float* verticies, GLsizei vertexCount, GLsizeiptr vertexSize);
+
+GLuint Shader_createProgram(const char* vertexShader, const char* fragShader);
+
+void Shader_checkSrcError(GLuint shader);
+
+void Shader_checkProgError(GLuint program);
