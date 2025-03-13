@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.31.4)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
+set(CMAKE_C_EXTENSIONS TRUE)
 
 set(CMAKE_C_COMPILER "C:/MinGW/bin/gcc.exe")
 set(CMAKE_CXX_COMPILER "C:/MinGW/bin/g++.exe")
@@ -12,9 +13,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 project(DeltaWing)
 
 
-
 # Add our source code
-file(GLOB_RECURSE SOURCES "src/*.c")
+file(GLOB_RECURSE SOURCES "src/*.c" "src/*.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 set(INCLUDE_DEPENDENCIES "${CMAKE_SOURCE_DIR}/include")

@@ -1,7 +1,26 @@
 #include "renderer.h"
+#include <string.h>
+#include <stddef.h>
 
-// s_ is for shaders
-// t_ is for tessellator
+const char* defaultFragShader = 
+    "#version 460                                   \n"
+    "in vec4 vertexColor;                           \n"
+    "out vec4 fragColor;                            \n"
+    "void main() {                                  \n"
+    "    fragColor = vertexColor;                   \n"
+    "}                                              \n";
+
+
+const char* defaultVertShader =
+    "#version 460                                   \n"
+    "layout (location = 0) in vec3 aPos;            \n"
+    "layout (location = 1) in vec4 aColor;          \n"
+    "out vec4 vertexColor;                          \n"
+    "void main() {                                  \n"
+    "   gl_Position = vec4(aPos, 1.0);              \n"
+    "   vertexColor = aColor;                       \n"
+    "}                                              \n";
+
 
 GLuint Shader_createProgram(const char* vertShader, const char* fragShader) {
     GLuint vs = glCreateShader(GL_VERTEX_SHADER);
@@ -25,19 +44,25 @@ GLuint Shader_createProgram(const char* vertShader, const char* fragShader) {
 
     glDetachShader(program, vs);
     glDetachShader(program, fs);
+
     glDeleteShader(vs);
     glDeleteShader(fs);
 
     return program;
 }
 
+void printLog(GLuint glenum) {
+    char* logBuf = malloc(1024 * sizeof(char));
+    glGetProgramInfoLog(glenum, 1024, NULL, logBuf);
+    printf("%s\n", logBuf);
+    free(logBuf);
+}
+
 void Shader_checkSrcError(GLuint shader) {
     int code = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &code);
     if (code == 0) {
-        char* logBuf = malloc(1024 * sizeof(char));
-        glGetShaderInfoLog(shader, 1024, NULL, logBuf);
-        printf("%s\n", logBuf);
+        printLog(shader);
     }
 }
 
@@ -45,67 +70,59 @@ void Shader_checkProgError(GLuint program) {
     int code = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &code);
     if (code == 0) {
-        char* logBuf = malloc(1024 * sizeof(char));
-        glGetProgramInfoLog(program, 1024, NULL, logBuf);
-        printf("%s\n", logBuf);
+        printLog(program);
     }
 }
 
-void Renderer_init(Renderer* r) {
-    // TODO: actually implement this shi
-    // r->vbo = Renderer_genStaticVBO()
-    // r->vao = Renderer_genDefaultVAO();
-    r->mode = 0;
-    r->verticies = (Vertex*) malloc(r->capacity * sizeof(Vertex));
-    r->capacity = 1024;
+void R_init(Renderer_t* r) {
+    // use default shader (can be changed later)
+    r->shader = Shader_createProgram(defaultVertShader, defaultFragShader);
     r->vertexCount = 0;
-    r->shaderProgram = 0;
-}
+    r->primitive = GL_TRIANGLES;
 
-void Renderer_free(Renderer* tes) {
-    
-}
+    glGenVertexArrays(1, &r->vao);
+    glBindVertexArray(r->vao);
 
-void Renderer_genDefaultVAO(GLuint* vbo, GLuint* vao) {
-    glGenVertexArrays(1, vao);
-    glBindVertexArray(*vao);
+    glGenBuffers(1, &r->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), NULL, GL_DYNAMIC_DRAW);
 
-    // vertex attribute 0, for the xyz pos of verticies
+    // location 0, 3 elements, size float, normalized false, stride 7 of floats (xyz rgba)
     glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-    // location 0, size of 3, size float, normalized: false, stride: 7 floats
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), NULL);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_t), (void*) 0);
 
-    // vertex attribute 1, for rgba of verticies
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, 7 * sizeof(float), (void*) (sizeof(float) * 3));
-}
-    
-// each vertex should be defined as x, y, z, r, g, b, a (stride of 7 floats)
-void Renderer_genStaticVBO(GLuint* vbo, float* verticies, GLsizei vertexCount, GLsizeiptr vertexSize) {
-    glGenBuffers(1, vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexCount * vertexSize, verticies, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, sizeof(Vertex_t), (void*) sizeof(vec3));
 }
 
-/** 
+void R_free(Renderer_t* r) {
+    glDeleteBuffers(1, &r->vbo);
+    glDeleteVertexArrays(1, &r->vao);
+    glDeleteProgram(r->shader);
+}
 
-const char* rainbowShader = 
-"#version 460                                   \n"
-"const vec2 resolution = vec2(1280.0, 720.0);   \n"
-"in vec4 gl_FragCoord;                          \n"
-"out vec4 diffuseColor;                         \n"
-"layout(location = 0) uniform float uTime;      \n"
-"vec3 hsbToRgb(float h, float s, float b) {     \n"
-"   vec3 rgb = clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);\n"
-"   rgb = rgb * rgb * (3.0 - 2.0 * rgb);        \n"
-"   return b * mix(vec3(1.0), rgb, s);          \n"
-"}                                              \n"
-"void main() {                                  \n"
-"   float offset = gl_FragCoord.x / resolution.x;\n"
-"   float hue = mod(mod(uTime / 2000.0, 1.0) + offset, 1.0);\n"
-"   vec3 rgb = hsbToRgb(hue, 1.0, 1.0);         \n"
-"   diffuseColor = vec4(rgb, 1.0);              \n"
-"}                                              \n";
+void R_addVertex(Renderer_t* r, Vertex_t v) {
+    if (r->vertexCount >= MAX_VERTICIES) return;
 
-*/
+    r->vertexData[r->vertexCount] = v;
+    r->vertexCount++;
+}
+
+void R_beginDraw(Renderer_t* r) {
+    // clear vertex data using memset
+    memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
+    r->vertexCount = 0;
+}
+
+void R_endDraw(Renderer_t* r) {
+    glUseProgram(r->shader);
+    glBindVertexArray(r->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
+    glDrawArrays(r->primitive, 0, r->vertexCount);
+}
+
+void R_print(Renderer_t* r) {
+    printf("prim: %d\n", r->primitive);
+    printf("vertexCount: %d\n", r->vertexCount);
+}

@@ -4,33 +4,42 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <cglm/cglm.h>
+
+// renderer skidded from PixelRifts
+
+#define MAX_TRIANGLES 2048
+#define MAX_VERTICIES MAX_TRIANGLES * 3
 
 typedef struct {
-    float x, y, z; // vertex coords
-    float r, g, b, a; // rgba (normalized)
-} Vertex;
+    vec3 pos;
+    vec4 color;
+} Vertex_t;
 
 typedef struct {
+    GLuint shader;
     GLuint vao;
     GLuint vbo;
-    GLenum mode;
-    Vertex* verticies; // dynamic array of verticies
+    Vertex_t vertexData[MAX_VERTICIES];
     GLuint vertexCount;
-    GLuint capacity;
-    GLuint shaderProgram;
-} Renderer;
+    GLenum primitive;
+} Renderer_t;
 
-/* Init tessellator */
-void Renderer_init(Renderer* r);
+void R_init(Renderer_t* renderer);
 
-void Renderer_free(Renderer* r);
+void R_free(Renderer_t* renderer);
 
-void Renderer_genDefaultVAO(GLuint* vbo, GLuint* vao);
+void R_addVertex(Renderer_t* renderer, Vertex_t vertex);
 
-void Renderer_genStaticVBO(GLuint* vbo, float* verticies, GLsizei vertexCount, GLsizeiptr vertexSize);
+void R_beginDraw(Renderer_t* renderer);
+
+void R_endDraw(Renderer_t* renderer);
+
+void R_print(Renderer_t* renderer);
 
 GLuint Shader_createProgram(const char* vertexShader, const char* fragShader);
 
 void Shader_checkSrcError(GLuint shader);
 
 void Shader_checkProgError(GLuint program);
+
