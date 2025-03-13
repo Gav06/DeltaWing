@@ -109,8 +109,8 @@ void R_addVertex(Renderer_t* r, Vertex_t v) {
 }
 
 void R_beginDraw(Renderer_t* r) {
-    // clear vertex data using memset
-    memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
+    // clear vertex data using memset (disabled)
+    // memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
     r->vertexCount = 0;
 }
 
