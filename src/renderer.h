@@ -26,7 +26,7 @@ typedef struct Renderer {
     GLboolean isBound;
 } Renderer_t;
 
-void R_init(Renderer_t* renderer);
+void R_init(Renderer_t* renderer, GLuint width, GLuint height);
 
 void R_bind(Renderer_t* renderer);
 

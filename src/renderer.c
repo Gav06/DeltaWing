@@ -17,8 +17,9 @@ const char* defaultVertShader =
     "layout (location = 0) in vec3 aPos;            \n"
     "layout (location = 1) in vec4 aColor;          \n"
     "out vec4 vertexColor;                          \n"
+    "layout (location = 2) uniform mat4 projection; \n"
     "void main() {                                  \n"
-    "   gl_Position = vec4(aPos, 1.0);              \n"
+    "   gl_Position = projection * vec4(aPos, 1.0); \n"
     "   vertexColor = aColor;                       \n"
     "}                                              \n";
 
@@ -102,13 +103,13 @@ void Shader_checkProgError(GLuint program) {
     }
 }
 
-void R_init(Renderer_t* r) {
+void R_init(Renderer_t* r, GLuint projWidth, GLuint projHeight) {
     // use default shader (can be changed later)
     r->shader = Shader_createProgram(defaultVertShader, defaultFragShader);
     r->vertexCount = 0;
     // gl_triangles is our default draw
     r->primitive = GL_TRIANGLES;
-    glm_ortho(0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 0.0f, r->projection);
+    glm_ortho(0.0f, (float) projWidth, (float) projHeight, 0.0f, -1.0f, 0.0f, r->projection);
 
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);

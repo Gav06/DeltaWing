@@ -53,7 +53,7 @@ int initGL() {
 
 void initGame() {
     renderer_p = malloc(sizeof(Renderer_t));
-    R_init(renderer_p);
+    R_init(renderer_p, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     R_bind(renderer_p);
 }
 
@@ -65,18 +65,19 @@ void exitGame() {
 void render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glUniformMatrix4fv(2, 1, GL_FALSE, *renderer_p->projection);
     R_beginDraw(renderer_p);
 
     R_addVertex(renderer_p, (Vertex_t) { 
-        {-0.5f, -0.5f, 0.0f}, 
+        {0.0f, 720.0f, 0.0f}, 
         {1.0f, 0.0f, 0.0f, 1.0f} 
     });
     R_addVertex(renderer_p, (Vertex_t) { 
-        {0.0f, 0.5f, 0.0f}, 
+        {640.0f, 0.0f, 0.0f}, 
         {0.0f, 1.0f, 0.0f, 1.0f} 
     });
     R_addVertex(renderer_p, (Vertex_t) { 
-        {0.5f, -0.5f, 0.0f}, 
+        {1280.0f, 720.0f, 0.0f}, 
         {0.0f, 0.0f, 1.0f, 1.0f} 
     });
 
