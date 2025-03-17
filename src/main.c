@@ -54,15 +54,12 @@ int initGL() {
 void initGame() {
     renderer_p = malloc(sizeof(Renderer_t));
     R_init(renderer_p);
+    R_bind(renderer_p);
 }
 
 void exitGame() {
     R_free(renderer_p);
     free(renderer_p);
-}
-
-void tick() {
-    
 }
 
 void render() {
@@ -105,7 +102,6 @@ int main() {
     while (!glfwWindowShouldClose(window_p)) {
         long long currentFrameTime = current_time_millis() - startTime;
 
-        tick();
         render();
         glfwSwapBuffers(window_p);
         glfwPollEvents();

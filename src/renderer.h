@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <stddef.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -11,21 +10,25 @@
 #define MAX_TRIANGLES 2048
 #define MAX_VERTICIES MAX_TRIANGLES * 3
 
-typedef struct {
+typedef struct Vertex {
     vec3 pos;
     vec4 color;
 } Vertex_t;
 
-typedef struct {
+typedef struct Renderer {
     GLuint shader;
     GLuint vao;
     GLuint vbo;
     Vertex_t vertexData[MAX_VERTICIES];
     GLuint vertexCount;
     GLenum primitive;
+    mat4 projection;
+    GLboolean isBound;
 } Renderer_t;
 
 void R_init(Renderer_t* renderer);
+
+void R_bind(Renderer_t* renderer);
 
 void R_free(Renderer_t* renderer);
 
