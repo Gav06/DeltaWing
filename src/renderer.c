@@ -110,6 +110,7 @@ void R_init(Renderer_t* r, GLuint projWidth, GLuint projHeight) {
     // gl_triangles is our default draw
     r->primitive = GL_TRIANGLES;
     glm_ortho(0.0f, (float) projWidth, (float) projHeight, 0.0f, -1.0f, 0.0f, r->projection);
+    glm_vec3_zero(r->camPos);
 
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);
@@ -136,6 +137,13 @@ void R_bind(Renderer_t* r) {
     r->isBound = GL_TRUE;
 }
 
+void R_checkBinding(Renderer_t* r) {
+    if (!r->isBound) {
+        fprintf(stderr, "Buffers of current Renderer are not bound!\n");
+        return;
+    }
+}
+
 void R_free(Renderer_t* r) {
     glDeleteBuffers(1, &r->vbo);
     glDeleteVertexArrays(1, &r->vao);
@@ -143,10 +151,7 @@ void R_free(Renderer_t* r) {
 }
 
 void R_addVertex(Renderer_t* r, Vertex_t v) {
-    if (!r->isBound) {
-        fprintf(stderr, "Buffers of current Renderer are not bound!\n");
-        return;
-    }   
+    R_checkBinding(r);
 
     if (r->vertexCount >= MAX_VERTICIES) {
         fprintf(stderr, "Vertex buffer full!\n");
@@ -158,29 +163,22 @@ void R_addVertex(Renderer_t* r, Vertex_t v) {
 }
 
 void R_beginDraw(Renderer_t* r) {
-    if (!r->isBound) {
-        fprintf(stderr, "Buffers of current Renderer are not bound!\n");
-        return;
-    }
+    R_checkBinding(r);
     // clear vertex data using memset (disabled)
     // memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
     r->vertexCount = 0;
 }
 
 void R_endDraw(Renderer_t* r) {
-    if (!r->isBound) {
-        fprintf(stderr, "Buffers of current Renderer are not bound!\n");
-        return;
-    }
+    // assuming this renderer is already bound and in-use
+    R_checkBinding(r);
 
+    // use shader
     glUseProgram(r->shader);
-    glBindVertexArray(r->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    // update uniforms before drawing
+    glUniformMatrix4fv(2, 1, GL_FALSE, *r->projection);
+    // pass vertexData to GPU
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
+    // draw call
     glDrawArrays(r->primitive, 0, r->vertexCount);
-}
-
-void R_print(Renderer_t* r) {
-    printf("prim: %d\n", r->primitive);
-    printf("vertexCount: %d\n", r->vertexCount);
 }

@@ -15,7 +15,11 @@ typedef struct Vertex {
     vec4 color;
 } Vertex_t;
 
-typedef struct Renderer {
+/**
+ * Dynamic renderer struct, used for moving objects and things that will have their 
+ * vertex data re-uploaded every frame
+ */
+typedef struct DynamicRenderer {
     GLuint shader;
     GLuint vao;
     GLuint vbo;
@@ -23,6 +27,7 @@ typedef struct Renderer {
     GLuint vertexCount;
     GLenum primitive;
     mat4 projection;
+    vec3 camPos;
     GLboolean isBound;
 } Renderer_t;
 
@@ -37,8 +42,6 @@ void R_addVertex(Renderer_t* renderer, Vertex_t vertex);
 void R_beginDraw(Renderer_t* renderer);
 
 void R_endDraw(Renderer_t* renderer);
-
-void R_print(Renderer_t* renderer);
 
 GLuint Shader_createProgram(const char* vertexShader, const char* fragShader);
 
