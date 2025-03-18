@@ -5,8 +5,6 @@
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 
-// renderer skidded from PixelRifts
-
 #define MAX_TRIANGLES 2048
 #define MAX_VERTICIES MAX_TRIANGLES * 3
 

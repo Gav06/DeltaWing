@@ -8,7 +8,7 @@
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
 
-GLFWwindow* window_ptr;
+GLFWwindow* window_p;
 Renderer_t* renderer_p;
 
 uint32_t fps;
@@ -27,7 +27,7 @@ void DW_errorCallback(int error, const char* description) {
 }
 
 void DW_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    printf("Key: %s Pressed: %d\n", glfwGetKeyName(key, scancode), action);
+    printf("Key: %d Pressed: %d\n", key, action);
 }
 
 void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -35,7 +35,7 @@ void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods
 }
 
 void DW_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-    printf("MPos: xy %.0f %.0f\n", xpos, ypos);
+    printf("MPos: xy %d %d\n", (int) xpos, (int) ypos);
 }
 
 int DW_initContext() {
@@ -48,15 +48,15 @@ int DW_initContext() {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-    window_ptr = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
-    glfwMakeContextCurrent(window_ptr);
+    window_p = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
+    glfwMakeContextCurrent(window_p);
     // setup callbacks
     glfwSetErrorCallback(DW_errorCallback);
-    glfwSetKeyCallback(window_ptr, DW_keyCallback);
-    glfwSetMouseButtonCallback(window_ptr, DW_mouseButtonCallback);
-    glfwSetCursorPosCallback(window_ptr, DW_cursorPosCallback);
+    glfwSetKeyCallback(window_p, DW_keyCallback);
+    glfwSetMouseButtonCallback(window_p, DW_mouseButtonCallback);
+    glfwSetCursorPosCallback(window_p, DW_cursorPosCallback);
 
-    if (!window_ptr) {
+    if (!window_p) {
         fprintf(stderr, "Unable to create GLFW window");
         glfwTerminate();
         return 1;
@@ -86,22 +86,25 @@ void DW_exitGame() {
 
 void DW_render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    renderer_p->primitive = GL_TRIANGLES;
 
     R_beginDraw(renderer_p);
 
-    R_addVertex(renderer_p, (Vertex_t) { 
-        {0.0f, 720.0f, 0.0f}, 
-        {1.0f, 0.0f, 0.0f, 1.0f} 
+    R_addVertex(renderer_p, (Vertex_t) {
+        { 515.0f, 485.0f, 0.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f}
     });
-    R_addVertex(renderer_p, (Vertex_t) { 
-        {640.0f, 0.0f, 0.0f}, 
-        {0.0f, 1.0f, 0.0f, 1.0f} 
+    R_addVertex(renderer_p, (Vertex_t) {
+        { 640.0f, 235.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 1.0f }
     });
-    R_addVertex(renderer_p, (Vertex_t) { 
-        {1280.0f, 720.0f, 0.0f}, 
-        {0.0f, 0.0f, 1.0f, 1.0f} 
+    R_addVertex(renderer_p, (Vertex_t) {
+        { 765.0f, 485.0f, 0.0f },
+        { 0.0f, 0.0f, 1.0f, 1.0f }
     });
-
+    glUseProgram(renderer_p->shader);
+    glUniform1i(0, shaderToggle);
     R_endDraw(renderer_p);
 
 }
@@ -120,13 +123,12 @@ int main(int argc, char** argv) {
     uint64_t lastFrame = 0;
 
     DW_initGame();
-    glfwShowWindow(window_ptr);
-    while (!glfwWindowShouldClose(window_ptr)) {
+    glfwShowWindow(window_p);
+    while (!glfwWindowShouldClose(window_p)) {
         uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
         
         DW_render();
-
-        glfwSwapBuffers(window_ptr);
+        glfwSwapBuffers(window_p);
         glfwPollEvents();
 
         // FPS Counter (updated once every 1000ms)
@@ -135,16 +137,17 @@ int main(int argc, char** argv) {
             fps = frames;
             frames = 0;
             lastFrame = currentFrameTime;
-
+            
+            // buffer of 24 bytes gives us like a max of 5 or 6 digits for fps format idk
             char buf[24];
             snprintf(buf, 24, "DeltaWing FPS: %d", fps);
-            glfwSetWindowTitle(window_ptr, buf);
+            glfwSetWindowTitle(window_p, buf);
         }
     }
 
     DW_exitGame();
 
-    glfwDestroyWindow(window_ptr);
+    glfwDestroyWindow(window_p);
     glfwTerminate();
     return 0;
 }

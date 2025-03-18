@@ -3,11 +3,11 @@
 
 #include "renderer.h"
 
-
 const char* defaultFragShader = 
     "#version 460                                   \n"
     "in vec4 vertexColor;                           \n"
     "out vec4 fragColor;                            \n"
+    "layout (location = 0) uniform int toggle;      \n"
     "void main() {                                  \n"
     "    fragColor = vertexColor;                   \n"
     "}                                              \n";
@@ -177,7 +177,7 @@ void R_endDraw(Renderer_t* r) {
     glUseProgram(r->shader);
     // update uniforms before drawing
     glUniformMatrix4fv(2, 1, GL_FALSE, *r->projection);
-    // pass vertexData to GPU
+    // pass vertex data to GPU
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
     // draw call
     glDrawArrays(r->primitive, 0, r->vertexCount);
