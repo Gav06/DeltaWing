@@ -76,6 +76,7 @@ void DW_initGame() {
     R_init(renderer_p, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     R_bind(renderer_p);
 
+    renderer_p->primitive = GL_QUADS;
 
 }
 
@@ -86,27 +87,32 @@ void DW_exitGame() {
 
 void DW_render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    renderer_p->primitive = GL_TRIANGLES;
 
     R_beginDraw(renderer_p);
 
+    float left = (DISPLAY_WIDTH / 2) - 200.0f;
+    float right = (DISPLAY_WIDTH / 2) + 200.0f;
+    float top = (DISPLAY_HEIGHT / 2) - 200.0f;
+    float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
+
     R_addVertex(renderer_p, (Vertex_t) {
-        { 515.0f, 485.0f, 0.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f}
-    });
-    R_addVertex(renderer_p, (Vertex_t) {
-        { 640.0f, 235.0f, 0.0f },
+        { left, top, 0.0f },
         { 0.0f, 1.0f, 0.0f, 1.0f }
     });
     R_addVertex(renderer_p, (Vertex_t) {
-        { 765.0f, 485.0f, 0.0f },
+        { left, bottom, 0.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f }
+    });
+    R_addVertex(renderer_p, (Vertex_t) {
+        { right, bottom, 0.0f },
+        { 1.0f, 1.0f, 0.0f, 1.0f }
+    });
+    R_addVertex(renderer_p, (Vertex_t) {
+        { right, top, 0.0f },
         { 0.0f, 0.0f, 1.0f, 1.0f }
     });
-    glUseProgram(renderer_p->shader);
-    glUniform1i(0, shaderToggle);
+    
     R_endDraw(renderer_p);
-
 }
 
 int main(int argc, char** argv) {

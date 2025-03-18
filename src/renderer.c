@@ -3,24 +3,26 @@
 
 #include "renderer.h"
 
-const char* defaultFragShader = 
-    "#version 460                                   \n"
-    "in vec4 vertexColor;                           \n"
-    "out vec4 fragColor;                            \n"
-    "layout (location = 0) uniform int toggle;      \n"
-    "void main() {                                  \n"
-    "    fragColor = vertexColor;                   \n"
-    "}                                              \n";
-
 const char* defaultVertShader =
-    "#version 460                                   \n"
+    "#version 460 core                              \n"
     "layout (location = 0) in vec3 aPos;            \n"
     "layout (location = 1) in vec4 aColor;          \n"
     "out vec4 vertexColor;                          \n"
-    "layout (location = 2) uniform mat4 projection; \n"
+    "flat out vec3 fragCoord;"
+    "layout (location = 0) uniform mat4 projection; \n"
     "void main() {                                  \n"
+    "   fragCoord = aPos;\n"
     "   gl_Position = projection * vec4(aPos, 1.0); \n"
     "   vertexColor = aColor;                       \n"
+    "}                                              \n";
+
+const char* defaultFragShader = 
+    "#version 460 core                              \n"
+    "in vec4 vertexColor;                           \n"
+    "in vec3 fragCoord;                             \n"
+    "out vec4 fragColor;                            \n"
+    "void main() {                                  \n"
+    "    fragColor = vertexColor;                   \n"
     "}                                              \n";
 
 GLuint Shader_createProgram(const char* vertShader, const char* fragShader) {
@@ -112,6 +114,10 @@ void R_init(Renderer_t* r, GLuint projWidth, GLuint projHeight) {
     glm_ortho(0.0f, (float) projWidth, (float) projHeight, 0.0f, -1.0f, 0.0f, r->projection);
     glm_vec3_zero(r->camPos);
 
+    glUseProgram(r->shader);
+    glUniformMatrix4fv(0, 1, GL_FALSE, *r->projection);
+    glUseProgram(0);
+
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);
 
@@ -175,8 +181,6 @@ void R_endDraw(Renderer_t* r) {
 
     // use shader
     glUseProgram(r->shader);
-    // update uniforms before drawing
-    glUniformMatrix4fv(2, 1, GL_FALSE, *r->projection);
     // pass vertex data to GPU
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
     // draw call
