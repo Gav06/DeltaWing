@@ -10,9 +10,10 @@ const char* defaultVertShader =
     "out vec4 vertexColor;                          \n"
     "flat out vec3 fragCoord;"
     "layout (location = 0) uniform mat4 projection; \n"
+    "layout (location = 1) uniform mat4 transform;  \n"
     "void main() {                                  \n"
-    "   fragCoord = aPos;\n"
-    "   gl_Position = projection * vec4(aPos, 1.0); \n"
+    "   fragCoord = aPos;                           \n"
+    "   gl_Position = transform * projection * vec4(aPos, 1.0); \n"
     "   vertexColor = aColor;                       \n"
     "}                                              \n";
 
@@ -25,18 +26,18 @@ const char* defaultFragShader =
     "    fragColor = vertexColor;                   \n"
     "}                                              \n";
 
-GLuint Shader_createProgram(const char* vertShader, const char* fragShader) {
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+uint32_t Shader_createProgram(const char* vertShader, const char* fragShader) {
+    uint32_t vs = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vs, 1, &vertShader, NULL);
     glCompileShader(vs);
     Shader_checkSrcError(vs);
     
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    uint32_t fs = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fs, 1, &fragShader, NULL);
     glCompileShader(fs);
     Shader_checkSrcError(fs);
 
-    GLuint program = glCreateProgram();
+    uint32_t program = glCreateProgram();
     glAttachShader(program, vs);
     glAttachShader(program, fs);
     glLinkProgram(program);
@@ -50,7 +51,7 @@ GLuint Shader_createProgram(const char* vertShader, const char* fragShader) {
     return program;
 }
 
-void printLog(GLuint object, GLsizei logLen, GLboolean isShader) {
+void printLog(uint32_t object, GLsizei logLen, GLboolean isShader) {
     if (logLen <= 0) return;
     
     char* logBuf = malloc(logLen * sizeof(char));
@@ -69,7 +70,7 @@ void printLog(GLuint object, GLsizei logLen, GLboolean isShader) {
     free(logBuf);
 }
 
-void Shader_checkSrcError(GLuint shader) {
+void Shader_checkSrcError(uint32_t shader) {
     GLint success = GL_FALSE;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     
@@ -87,7 +88,7 @@ void Shader_checkSrcError(GLuint shader) {
     }
 }
 
-void Shader_checkProgError(GLuint program) {
+void Shader_checkProgError(uint32_t program) {
     GLint success = GL_FALSE;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     
@@ -105,17 +106,27 @@ void Shader_checkProgError(GLuint program) {
     }
 }
 
-void R_init(Renderer_t* r, GLuint projWidth, GLuint projHeight) {
-    // use default shader (can be changed later)
+void Context_init(Context_t* c, uint32_t width, uint32_t height) {
+    // default cam pos
+    glm_vec3_zero(c->camPos);
+    // display dimensions
+    c->displayWidth = width;
+    c->displayHeight = height;
+    // create ortho matrix
+    glm_ortho(0.0f, (float) width, (float) height, 0.0f, -1.0f, 0.0f, c->projection);
+    // create transform matrix
+    glm_mat4_identity(c->transformation);
+}
+
+void Renderer_init(Renderer_t* r, Context_t* c) {
+    // our renderer will use the matricies from our render context
+    // in the vertex shader
+    r->context = c;
     r->shader = Shader_createProgram(defaultVertShader, defaultFragShader);
     r->vertexCount = 0;
-    // gl_triangles is our default draw
     r->primitive = GL_TRIANGLES;
-    glm_ortho(0.0f, (float) projWidth, (float) projHeight, 0.0f, -1.0f, 0.0f, r->projection);
-    glm_vec3_zero(r->camPos);
 
     glUseProgram(r->shader);
-    glUniformMatrix4fv(0, 1, GL_FALSE, *r->projection);
     glUseProgram(0);
 
     glGenVertexArrays(1, &r->vao);
@@ -137,27 +148,27 @@ void R_init(Renderer_t* r, GLuint projWidth, GLuint projHeight) {
     r->isBound = GL_FALSE;
 }
 
-void R_bind(Renderer_t* r) {
+void Renderer_bind(Renderer_t* r) {
     glBindVertexArray(r->vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     r->isBound = GL_TRUE;
 }
 
-void R_checkBinding(Renderer_t* r) {
+void Renderer_checkBound(Renderer_t* r) {
     if (!r->isBound) {
         fprintf(stderr, "Buffers of current Renderer are not bound!\n");
         return;
     }
 }
 
-void R_free(Renderer_t* r) {
+void Renderer_free(Renderer_t* r) {
     glDeleteBuffers(1, &r->vbo);
     glDeleteVertexArrays(1, &r->vao);
     glDeleteProgram(r->shader);
 }
 
-void R_addVertex(Renderer_t* r, Vertex_t v) {
-    R_checkBinding(r);
+void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
+    Renderer_checkBound(r);
 
     if (r->vertexCount >= MAX_VERTICIES) {
         fprintf(stderr, "Vertex buffer full!\n");
@@ -168,19 +179,22 @@ void R_addVertex(Renderer_t* r, Vertex_t v) {
     r->vertexCount++;
 }
 
-void R_beginDraw(Renderer_t* r) {
-    R_checkBinding(r);
+void Renderer_begin(Renderer_t* r) {
+    Renderer_checkBound(r);
     // clear vertex data using memset (disabled)
     // memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
     r->vertexCount = 0;
 }
 
-void R_endDraw(Renderer_t* r) {
+void Renderer_end(Renderer_t* r) {
     // assuming this renderer is already bound and in-use
-    R_checkBinding(r);
+    Renderer_checkBound(r);
 
     // use shader
     glUseProgram(r->shader);
+    // pass matrix data
+    glUniformMatrix4fv(0, 1, GL_FALSE, *r->context->projection);
+    glUniformMatrix4fv(1, 1, GL_FALSE, *r->context->transformation);
     // pass vertex data to GPU
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
     // draw call

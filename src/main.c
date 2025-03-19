@@ -9,7 +9,8 @@
 #define DISPLAY_HEIGHT 720
 
 GLFWwindow* window_p;
-Renderer_t* renderer_p;
+Context_t* context;
+Renderer_t* renderer;
 
 uint32_t fps;
 
@@ -27,15 +28,15 @@ void DW_errorCallback(int error, const char* description) {
 }
 
 void DW_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    printf("Key: %d Pressed: %d\n", key, action);
+    // printf("Key: %d Pressed: %d\n", key, action);
 }
 
 void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    printf("MButton: %d Pressed: %d\n", button, action);
+    // printf("MButton: %d Pressed: %d\n", button, action);
 }
 
 void DW_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-    printf("MPos: xy %d %d\n", (int) xpos, (int) ypos);
+    // printf("MPos: xy %d %d\n", (int) xpos, (int) ypos);
 }
 
 int DW_initContext() {
@@ -71,48 +72,52 @@ int DW_initContext() {
 }
 
 void DW_initGame() {
-    // Setup our dynamic renderer
-    renderer_p = malloc(sizeof(Renderer_t));
-    R_init(renderer_p, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-    R_bind(renderer_p);
+    // Setup our dynamic renderer & render context
+    context = malloc(sizeof(Context_t));
+    Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    renderer_p->primitive = GL_QUADS;
+    renderer = malloc(sizeof(Renderer_t));
+    Renderer_init(renderer, context);
+    Renderer_bind(renderer);
+
+    renderer->primitive = GL_QUADS;
 
 }
 
 void DW_exitGame() {
-    R_free(renderer_p);
-    free(renderer_p);
+    Renderer_free(renderer);
+    free(renderer);
+    free(context);
 }
+
+const float left = (DISPLAY_WIDTH / 2) - 200.0f;
+const float right = (DISPLAY_WIDTH / 2) + 200.0f;
+const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
+const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 
 void DW_render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    R_beginDraw(renderer_p);
+    Renderer_begin(renderer);
 
-    float left = (DISPLAY_WIDTH / 2) - 200.0f;
-    float right = (DISPLAY_WIDTH / 2) + 200.0f;
-    float top = (DISPLAY_HEIGHT / 2) - 200.0f;
-    float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
-
-    R_addVertex(renderer_p, (Vertex_t) {
+    Renderer_addVertex(renderer, (Vertex_t) {
         { left, top, 0.0f },
         { 0.0f, 1.0f, 0.0f, 1.0f }
     });
-    R_addVertex(renderer_p, (Vertex_t) {
+    Renderer_addVertex(renderer, (Vertex_t) {
         { left, bottom, 0.0f },
         { 1.0f, 0.0f, 0.0f, 1.0f }
     });
-    R_addVertex(renderer_p, (Vertex_t) {
+    Renderer_addVertex(renderer, (Vertex_t) {
         { right, bottom, 0.0f },
         { 1.0f, 1.0f, 0.0f, 1.0f }
     });
-    R_addVertex(renderer_p, (Vertex_t) {
+    Renderer_addVertex(renderer, (Vertex_t) {
         { right, top, 0.0f },
         { 0.0f, 0.0f, 1.0f, 1.0f }
     });
     
-    R_endDraw(renderer_p);
+    Renderer_end(renderer);
 }
 
 int main(int argc, char** argv) {
