@@ -8,7 +8,18 @@
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
 
-GLFWwindow* window_p;
+typedef struct Input {
+    uint32_t mouseX;
+    uint32_t mouseY;
+    uint32_t prevMouseX;
+    uint32_t prevMouseY;
+    bool mouseState[8];
+} Input_t;
+
+// Our global game state struct containers
+
+GLFWwindow* window;
+Input_t* input;
 Context_t* context;
 Renderer_t* renderer;
 
@@ -28,15 +39,20 @@ void DW_errorCallback(int error, const char* description) {
 }
 
 void DW_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // printf("Key: %d Pressed: %d\n", key, action);
+    printf("Key: %d Pressed: %d\n", key, action);
 }
 
 void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    // printf("MButton: %d Pressed: %d\n", button, action);
+    if (0 <= button <= 8) {
+        input->mouseState[button] = action;
+    }
 }
 
 void DW_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-    // printf("MPos: xy %d %d\n", (int) xpos, (int) ypos);
+    input->prevMouseX = input->mouseX;
+    input->prevMouseY = input->mouseY;
+    input->mouseX = (uint32_t) xpos;
+    input->mouseY = (uint32_t) ypos;
 }
 
 int DW_initContext() {
@@ -49,15 +65,15 @@ int DW_initContext() {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-    window_p = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
-    glfwMakeContextCurrent(window_p);
+    window = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
+    glfwMakeContextCurrent(window);
     // setup callbacks
     glfwSetErrorCallback(DW_errorCallback);
-    glfwSetKeyCallback(window_p, DW_keyCallback);
-    glfwSetMouseButtonCallback(window_p, DW_mouseButtonCallback);
-    glfwSetCursorPosCallback(window_p, DW_cursorPosCallback);
+    glfwSetKeyCallback(window, DW_keyCallback);
+    glfwSetMouseButtonCallback(window, DW_mouseButtonCallback);
+    glfwSetCursorPosCallback(window, DW_cursorPosCallback);
 
-    if (!window_p) {
+    if (!window) {
         fprintf(stderr, "Unable to create GLFW window");
         glfwTerminate();
         return 1;
@@ -67,6 +83,9 @@ int DW_initContext() {
         printf("Couldn't load OpenGL\n");
         return 1;
     }
+
+    const char* version = glGetString(GL_VERSION);
+    printf("OpenGL %s\n", version);
 
     return 0;
 }
@@ -80,8 +99,8 @@ void DW_initGame() {
     Renderer_init(renderer, context);
     Renderer_bind(renderer);
 
-    renderer->primitive = GL_QUADS;
-
+    // Initialize with zeroes
+    input = calloc(1, sizeof(Input_t));
 }
 
 void DW_exitGame() {
@@ -97,6 +116,7 @@ const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 
 void DW_render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
     Renderer_begin(renderer);
 
@@ -116,32 +136,30 @@ void DW_render() {
         { right, top, 0.0f },
         { 0.0f, 0.0f, 1.0f, 1.0f }
     });
-    
+
     Renderer_end(renderer);
 }
 
 int main(int argc, char** argv) {
     if (DW_initContext())
         return 1;
-
-    glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
-
-    const char* version = glGetString(GL_VERSION);
-    printf("OpenGL %s\n", version);
     
+    DW_initGame();
+
     int frames = 0;
     const uint64_t startTime = DW_currentTimeMillis();
     uint64_t lastFrame = 0;
 
-    DW_initGame();
-    glfwShowWindow(window_p);
-    while (!glfwWindowShouldClose(window_p)) {
+    glfwShowWindow(window);
+    glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+    while (!glfwWindowShouldClose(window)) {
         uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
         
         DW_render();
-        glfwSwapBuffers(window_p);
+        glfwSwapBuffers(window);
         glfwPollEvents();
-
+        
+        printf("mx %d my %d\n", input->mouseX, input->mouseY);
         // FPS Counter (updated once every 1000ms)
         frames++;
         if (currentFrameTime - lastFrame >= 1000) {
@@ -152,13 +170,13 @@ int main(int argc, char** argv) {
             // buffer of 24 bytes gives us like a max of 5 or 6 digits for fps format idk
             char buf[24];
             snprintf(buf, 24, "DeltaWing FPS: %d", fps);
-            glfwSetWindowTitle(window_p, buf);
+            glfwSetWindowTitle(window, buf);
         }
     }
 
     DW_exitGame();
 
-    glfwDestroyWindow(window_p);
+    glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
 }

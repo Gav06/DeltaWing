@@ -1,3 +1,6 @@
+#ifndef RENDERER_H
+#define RENDERER_H
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -57,3 +60,4 @@ void Shader_checkSrcError(uint32_t shader);
 
 void Shader_checkProgError(uint32_t program);
 
+#endif

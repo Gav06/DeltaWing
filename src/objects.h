@@ -1,3 +1,6 @@
+#ifndef OBJECTS_H
+#define OBJECTS_H
+
 #include <cglm/cglm.h>
 
 typedef struct Rect {
@@ -13,3 +16,5 @@ typedef struct GameObj {
 bool Rect_isInside(Rect_t* rect, vec2 point);
 
 // typedef struct 
+
+#endif
