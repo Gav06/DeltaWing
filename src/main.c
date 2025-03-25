@@ -117,23 +117,19 @@ const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 void DW_render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
+	renderer->primitive = GL_TRIANGLES;
     Renderer_begin(renderer);
 
-    Renderer_addVertex(renderer, (Vertex_t) {
-        { left, top, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 1.0f }
-    });
     Renderer_addVertex(renderer, (Vertex_t) {
         { left, bottom, 0.0f },
         { 1.0f, 0.0f, 0.0f, 1.0f }
     });
     Renderer_addVertex(renderer, (Vertex_t) {
-        { right, bottom, 0.0f },
-        { 1.0f, 1.0f, 0.0f, 1.0f }
+        { (right + left) / 2.0f, top, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 1.0f }
     });
     Renderer_addVertex(renderer, (Vertex_t) {
-        { right, top, 0.0f },
+        { right, bottom, 0.0f },
         { 0.0f, 0.0f, 1.0f, 1.0f }
     });
 

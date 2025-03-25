@@ -1,14 +1,23 @@
-cmake_minimum_required(VERSION 3.31.4)
+cmake_minimum_required(VERSION 3.30)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS TRUE)
 
-set(CMAKE_C_COMPILER "C:/MinGW/bin/gcc.exe")
-set(CMAKE_CXX_COMPILER "C:/MinGW/bin/g++.exe")
+if (WIN32)
+	message(STATUS "Using default Windows MinGW compiler paths")
+	set(CMAKE_C_COMPILER "C:/MinGW/bin/gcc.exe")
+	set(CMAKE_CXX_COMPILER "C:/MinGW/bin/g++.exe")
+elseif(UNIX)
+	message("Using default Linux gcc compiler path")
+	set(CMAKE_C_COMPILER "/usr/bin/gcc")
+	set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+else()
+	message(STATUS "Building on an unsupported platform: ${CMAKE_SYSTEM_NAME}")
+endif()
 
 cmake_policy(SET CMP0072 NEW)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 project(DeltaWing)
 
@@ -48,7 +57,7 @@ endif()
 
 
 target_link_libraries(${PROJECT_NAME} 
-    glfw3
+    glfw3 m
 )
 
 # Enable optimizations
