@@ -36,28 +36,17 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DEPENDENCIES})
 
 find_package(OpenGL REQUIRED)
 
-# Find the package - this works if GLFW provides a config file
-find_package(glfw3 QUIET)
-
-# If the above doesn't work, use a more manual approach
-if (NOT glfw3_FOUND)
-    find_library(GLFW_LIB 
-                 NAMES glfw3 glfw
-                 PATHS ${LIBRARY_DEPENDENCIES}
-                 NO_DEFAULT_PATH)
-                 
-    if (GLFW_LIB)
-        add_library(glfw3 STATIC IMPORTED)
-        set_target_properties(glfw3 PROPERTIES
-            IMPORTED_LOCATION "${GLFW_LIB}")
-    else()
-        message(FATAL_ERROR "Could not find GLFW library")
-    endif()
+# Resolve glfw from static lib depending on os
+if (WIN32)
+	set(GLFW_LIB "${LIBRARY_DEPENDENCIES}/libglfw3.lib")
+elseif(UNIX)
+	set(GLFW_LIB "${LIBRARY_DEPENDENCIES}/libglfw3.a")
+else()
+	message(FATAL "Building on an unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-
 target_link_libraries(${PROJECT_NAME} 
-    glfw3 m
+    ${GLFW_LIB} m
 )
 
 # Enable optimizations

@@ -39,7 +39,7 @@ void DW_errorCallback(int error, const char* description) {
 }
 
 void DW_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    printf("Key: %d Pressed: %d\n", key, action);
+    // printf("Key: %d Pressed: %d\n", key, action);
 }
 
 void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
         
-        printf("mx %d my %d\n", input->mouseX, input->mouseY);
+        // printf("mx %d my %d\n", input->mouseX, input->mouseY);
         // FPS Counter (updated once every 1000ms)
         frames++;
         if (currentFrameTime - lastFrame >= 1000) {
