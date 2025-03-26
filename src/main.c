@@ -117,21 +117,29 @@ const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 void DW_render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	renderer->primitive = GL_TRIANGLES;
+    // drawing a "quad" with triangle strip because GL_QUAD is deprecated, 
+    // and doesn't even work on unix-like builds
+	
+    renderer->primitive = GL_TRIANGLE_STRIP;
     Renderer_begin(renderer);
 
     Renderer_addVertex(renderer, (Vertex_t) {
         { left, bottom, 0.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f }
+        { 1.0f, 1.0f, 0.0f, 1.0f }
     });
     Renderer_addVertex(renderer, (Vertex_t) {
-        { (right + left) / 2.0f, top, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 1.0f }
+        { left, top, 0.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f }
     });
     Renderer_addVertex(renderer, (Vertex_t) {
         { right, bottom, 0.0f },
         { 0.0f, 0.0f, 1.0f, 1.0f }
     });
+    Renderer_addVertex(renderer, (Vertex_t) {
+        { right, top, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 1.0f }
+    });
+    
 
     Renderer_end(renderer);
 }
