@@ -4,28 +4,28 @@
 
 #include "renderer.h"
 #include "objects.h"
+#include "input.h"
+
 
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
 
-typedef struct Input {
-    uint32_t mouseX;
-    uint32_t mouseY;
-    uint32_t prevMouseX;
-    uint32_t prevMouseY;
-    bool mouseState[8];
-} Input_t;
+#define TARGET_TPS 60
+#define MS_PER_TICK (1000 / TARGET_TPS)
 
 // Our global game state struct containers
 
 GLFWwindow* window;
 Input_t* input;
 Context_t* context;
-Renderer_t* renderer;
+Renderer_t* dynRenderer;
 
 uint32_t fps;
 
-// skidded from stackoverflow, uses mingw lib sys/time.h
+int32_t cameraX = 0;
+int32_t cameraY = 0;
+
+// skidded from stackoverflow, requires gnu lib sys/time.h
 int64_t DW_currentTimeMillis() {
   struct timeval time;
   gettimeofday(&time, NULL);
@@ -39,7 +39,10 @@ void DW_errorCallback(int error, const char* description) {
 }
 
 void DW_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // printf("Key: %d Pressed: %d\n", key, action);
+    if (key >= 32 && key <= 348) {
+        input->keyStates[key] = action; 
+        input->currentMods = mods;
+    }
 }
 
 void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -55,7 +58,7 @@ void DW_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
     input->mouseY = (uint32_t) ypos;
 }
 
-int DW_initContext() {
+int DW_initWindow() {
     if (!glfwInit()) {
         return 1;
     }
@@ -67,6 +70,8 @@ int DW_initContext() {
 
     window = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+
     // setup callbacks
     glfwSetErrorCallback(DW_errorCallback);
     glfwSetKeyCallback(window, DW_keyCallback);
@@ -95,17 +100,18 @@ void DW_initGame() {
     context = malloc(sizeof(Context_t));
     Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    renderer = malloc(sizeof(Renderer_t));
-    Renderer_init(renderer, context);
-    Renderer_bind(renderer);
+    dynRenderer = malloc(sizeof(Renderer_t));
+    Renderer_init(dynRenderer, context);
+    dynRenderer->primitive = GL_TRIANGLE_STRIP;
+    Renderer_bind(dynRenderer);
 
     // Initialize with zeroes
     input = calloc(1, sizeof(Input_t));
 }
 
 void DW_exitGame() {
-    Renderer_free(renderer);
-    free(renderer);
+    Renderer_free(dynRenderer);
+    free(dynRenderer);
     free(context);
 }
 
@@ -114,68 +120,106 @@ const float right = (DISPLAY_WIDTH / 2) + 200.0f;
 const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
 const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 
-void DW_render() {
+void DW_tick() {
+    int moveX = 0;
+    int moveY = 0;
+    if (DW_isKeyDown(input, GLFW_KEY_A)) {
+        moveX -= 10;
+    }
+    if (DW_isKeyDown(input, GLFW_KEY_D)) {
+        moveX += 10;
+    }
+    if (DW_isKeyDown(input, GLFW_KEY_W)) {
+        moveY -= 10;
+    }
+    if (DW_isKeyDown(input, GLFW_KEY_S)) {
+        moveY += 10;
+    }
+
+    cameraX += moveX;
+    cameraY += moveY;
+}
+
+void DW_render(float partialTicks) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    Context_refresh(context);
 
     // drawing a "quad" with triangle strip because GL_QUAD is deprecated, 
     // and doesn't even work on unix-like builds
 	
-    renderer->primitive = GL_TRIANGLE_STRIP;
-    Renderer_begin(renderer);
+    glm_translate(context->model, (vec3) {cameraX, cameraY, 0});
+    Renderer_begin(dynRenderer);
 
-    Renderer_addVertex(renderer, (Vertex_t) {
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
         { left, bottom, 0.0f },
         { 1.0f, 1.0f, 0.0f, 1.0f }
     });
-    Renderer_addVertex(renderer, (Vertex_t) {
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
         { left, top, 0.0f },
         { 1.0f, 0.0f, 0.0f, 1.0f }
     });
-    Renderer_addVertex(renderer, (Vertex_t) {
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
         { right, bottom, 0.0f },
         { 0.0f, 0.0f, 1.0f, 1.0f }
     });
-    Renderer_addVertex(renderer, (Vertex_t) {
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
         { right, top, 0.0f },
         { 0.0f, 1.0f, 0.0f, 1.0f }
     });
-    
 
-    Renderer_end(renderer);
+    Renderer_end(dynRenderer);
 }
 
 int main(int argc, char** argv) {
-    if (DW_initContext())
+    if (DW_initWindow())
         return 1;
     
     DW_initGame();
 
-    int frames = 0;
-    const uint64_t startTime = DW_currentTimeMillis();
-    uint64_t lastFrame = 0;
-
     glfwShowWindow(window);
     glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+
+    uint64_t lastTime = DW_currentTimeMillis();
+    uint64_t accumulator = 0;
+    uint64_t frameStart, deltaTime;
+    uint32_t ticks = 0;
+
     while (!glfwWindowShouldClose(window)) {
-        uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
+        // uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
+        frameStart = DW_currentTimeMillis();
+        deltaTime = frameStart - lastTime;
+        lastTime = frameStart;
+        accumulator += deltaTime;
+
+        while (accumulator >= MS_PER_TICK) {
+            DW_tick();
+            
+            ticks++;
+            accumulator -= MS_PER_TICK;
+        }
+
+        const float partialTicks = (float) accumulator / MS_PER_TICK;
         
-        DW_render();
+        DW_render(partialTicks);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
         
-        // printf("mx %d my %d\n", input->mouseX, input->mouseY);
-        // FPS Counter (updated once every 1000ms)
-        frames++;
-        if (currentFrameTime - lastFrame >= 1000) {
-            fps = frames;
-            frames = 0;
-            lastFrame = currentFrameTime;
+        /*
+        // // printf("mx %d my %d\n", input->mouseX, input->mouseY);
+        // // FPS Counter (updated once every 1000ms)
+        // frames++;
+        // if (currentFrameTime - lastFrame >= 1000) {
+        //     fps = frames;
+        //     frames = 0;
+        //     lastFrame = currentFrameTime;
             
-            // buffer of 24 bytes gives us like a max of 5 or 6 digits for fps format idk
-            char buf[24];
-            snprintf(buf, 24, "DeltaWing FPS: %d", fps);
-            glfwSetWindowTitle(window, buf);
-        }
+        //     // buffer of 24 bytes gives us like a max of 5 or 6 digits for fps format idk
+        //     char buf[24];
+        //     snprintf(buf, 24, "DeltaWing FPS: %d", fps);
+        //     glfwSetWindowTitle(window, buf);
+        // }
+        */
     }
 
     DW_exitGame();

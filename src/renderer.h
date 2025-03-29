@@ -21,7 +21,7 @@ typedef struct Context {
     uint32_t displayWidth;
     uint32_t displayHeight;
     mat4 projection;
-    mat4 transformation;
+    mat4 model;
 } Context_t;
 
 /**
@@ -41,6 +41,9 @@ typedef struct DynamicRenderer {
 } Renderer_t;
 
 void Context_init(Context_t* context, uint32_t width, uint32_t height);
+
+// Reset the matricies to their identities for each frame
+void Context_refresh(Context_t* context);
 
 void Renderer_init(Renderer_t* renderer, Context_t* context);
 

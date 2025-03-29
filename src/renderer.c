@@ -10,10 +10,10 @@ const char* defaultVertShader =
     "out vec4 vertexColor;                          \n"
     "flat out vec3 fragCoord;"
     "layout (location = 0) uniform mat4 projection; \n"
-    "layout (location = 1) uniform mat4 transform;  \n"
+    "layout (location = 1) uniform mat4 model;  \n"
     "void main() {                                  \n"
     "   fragCoord = aPos;                           \n"
-    "   gl_Position = transform * projection * vec4(aPos, 1.0); \n"
+    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
     "   vertexColor = aColor;                       \n"
     "}                                              \n";
 
@@ -112,10 +112,13 @@ void Context_init(Context_t* c, uint32_t width, uint32_t height) {
     // display dimensions
     c->displayWidth = width;
     c->displayHeight = height;
-    // create ortho matrix
-    glm_ortho(0.0f, (float) width, (float) height, 0.0f, -1.0f, 0.0f, c->projection);
-    // create transform matrix
-    glm_mat4_identity(c->transformation);
+    // Setup matricies to their identities
+    Context_refresh(c);
+}
+
+void Context_refresh(Context_t* c) {
+    glm_mat4_identity(c->model);
+    glm_ortho(0.0f, (float) c->displayWidth, (float) c->displayHeight, 0.0f, -1.0f, 0.0f, c->projection);
 }
 
 void Renderer_init(Renderer_t* r, Context_t* c) {
@@ -194,7 +197,7 @@ void Renderer_end(Renderer_t* r) {
     glUseProgram(r->shader);
     // pass matrix data
     glUniformMatrix4fv(0, 1, GL_FALSE, *r->context->projection);
-    glUniformMatrix4fv(1, 1, GL_FALSE, *r->context->transformation);
+    glUniformMatrix4fv(1, 1, GL_FALSE, *r->context->model);
     // pass vertex data to GPU
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
     // draw call
