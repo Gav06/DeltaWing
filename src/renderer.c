@@ -3,6 +3,48 @@
 
 #include "renderer.h"
 
+void MatrixStack_init(MatrixStack_t* stack) {
+    stack->top = -1;
+}
+
+void MatrixStack_push(MatrixStack_t* stack, mat4 matrix) {
+    if (MatrixStack_isFull(stack)) {
+        // Stack overflow case
+        fprintf(stderr, "Error: Stack size exceeds limit of %d. (stack overflow)\n", MAX_MATRIX_STACK_SIZE);
+        return;
+    }
+
+    stack->array[++stack->top] = matrix;
+}
+
+mat4* MatrixStack_pop(MatrixStack_t* stack) {
+    if (MatrixStack_isEmpty(stack)) {
+        fprintf(stderr, "Error: Attempted to pop empty stack. (stack underflow)\n");
+        return NULL;
+    }
+
+    mat4* popped = stack->array[stack->top];
+    stack->array[stack->top--] = NULL;
+    return popped;
+}
+
+mat4* MatrixStack_peek(MatrixStack_t* stack) {
+    if (MatrixStack_isEmpty(stack)) {
+        fprintf(stderr, "Error: Attempted to peek empty stack.\n");
+        return NULL;
+    }
+
+    return stack->array[stack->top];
+}
+
+bool MatrixStack_isFull(MatrixStack_t* stack) {
+    return stack->top >= MAX_MATRIX_STACK_SIZE - 1;
+}
+
+bool MatrixStack_isEmpty(MatrixStack_t* stack) {
+    return stack->top == -1;
+}
+
 const char* defaultVertShader =
     "#version 460 core                              \n"
     "layout (location = 0) in vec3 aPos;            \n"
@@ -56,7 +98,7 @@ void printLog(uint32_t object, GLsizei logLen, GLboolean isShader) {
     
     char* logBuf = malloc(logLen * sizeof(char));
     if (!logBuf) {
-        printf("Failed to allocate memory for log\n");
+        sprintf(stderr, "Error: Failed to allocate memory for log\n");
         return;
     }
     
@@ -84,7 +126,7 @@ void Shader_checkSrcError(uint32_t shader) {
     }
     
     if (!success) {
-        printf("Shader compilation failed\n");
+        sprintf(stderr, "Error: Shader compilation failed\n");
     }
 }
 
@@ -102,7 +144,7 @@ void Shader_checkProgError(uint32_t program) {
     }
     
     if (!success) {
-        printf("Program linking failed\n");
+        sprintf(stderr, "Error: Program linking failed\n");
     }
 }
 
@@ -159,7 +201,7 @@ void Renderer_bind(Renderer_t* r) {
 
 void Renderer_checkBound(Renderer_t* r) {
     if (!r->isBound) {
-        fprintf(stderr, "Buffers of current Renderer are not bound!\n");
+        fprintf(stderr, "Error: Buffers of current Renderer are not bound!\n");
         return;
     }
 }
@@ -174,7 +216,7 @@ void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
     Renderer_checkBound(r);
 
     if (r->vertexCount >= MAX_VERTICIES) {
-        fprintf(stderr, "Vertex buffer full!\n");
+        fprintf(stderr, "Error: Vertex buffer full!\n");
         return;
     }
 
@@ -189,7 +231,7 @@ void Renderer_begin(Renderer_t* r) {
     r->vertexCount = 0;
 }
 
-void Renderer_end(Renderer_t* r) {
+void Renderer_push(Renderer_t* r) {
     // assuming this renderer is already bound and in-use
     Renderer_checkBound(r);
 

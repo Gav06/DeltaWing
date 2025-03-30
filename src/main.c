@@ -79,13 +79,13 @@ int DW_initWindow() {
     glfwSetCursorPosCallback(window, DW_cursorPosCallback);
 
     if (!window) {
-        fprintf(stderr, "Unable to create GLFW window");
+        fprintf(stderr, "Error: Unable to create GLFW window");
         glfwTerminate();
         return 1;
     }
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-        printf("Couldn't load OpenGL\n");
+        sprintf(stderr, "Error: Couldn't load OpenGL\n");
         return 1;
     }
 
@@ -110,9 +110,13 @@ void DW_initGame() {
 }
 
 void DW_exitGame() {
+    // Free renderer gpu buffers
     Renderer_free(dynRenderer);
+    // Free renderer memory
     free(dynRenderer);
     free(context);
+
+    free(input);
 }
 
 const float left = (DISPLAY_WIDTH / 2) - 200.0f;
@@ -121,6 +125,7 @@ const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
 const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 
 void DW_tick() {
+    // update camera
     int moveX = 0;
     int moveY = 0;
     if (DW_isKeyDown(input, GLFW_KEY_A)) {
@@ -167,7 +172,7 @@ void DW_render(float partialTicks) {
         { 0.0f, 1.0f, 0.0f, 1.0f }
     });
 
-    Renderer_end(dynRenderer);
+    Renderer_push(dynRenderer);
 }
 
 int main(int argc, char** argv) {
@@ -184,6 +189,7 @@ int main(int argc, char** argv) {
     uint64_t frameStart, deltaTime;
     uint32_t ticks = 0;
 
+    // Game loop
     while (!glfwWindowShouldClose(window)) {
         // uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
         frameStart = DW_currentTimeMillis();
@@ -222,9 +228,12 @@ int main(int argc, char** argv) {
         */
     }
 
+    // This must be called before destroying our context because
+    // We need some GL functions to free our VRAM
     DW_exitGame();
 
     glfwDestroyWindow(window);
     glfwTerminate();
+    
     return 0;
 }

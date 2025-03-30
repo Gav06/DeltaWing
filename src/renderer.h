@@ -11,6 +11,18 @@
 #define MAX_TRIANGLES 2048
 #define MAX_VERTICIES MAX_TRIANGLES * 3
 
+#define MAX_MATRIX_STACK_SIZE 128
+
+/**
+ * A stack data structure for matricies
+ * Mainly used for the model/transformation matrix in our case,
+ * Similar to the old glPushMatrix library functions
+ */ 
+typedef struct MatrixStack {
+    mat4* array[MAX_MATRIX_STACK_SIZE];
+    uint8_t top;
+} MatrixStack_t;
+
 typedef struct Vertex {
     vec3 pos;
     vec4 color;
@@ -40,6 +52,22 @@ typedef struct DynamicRenderer {
     Vertex_t vertexData[MAX_VERTICIES];
 } Renderer_t;
 
+// Initializes our stack
+void MatrixStack_init(MatrixStack_t* stack);
+
+// Push a new layer to the stack
+void MatrixStack_push(MatrixStack_t* stack);
+
+// Pop the actively pushed layer
+mat4* MatrixStack_pop(MatrixStack_t* stack);
+
+// Get the current matrix on top of the stack
+mat4* MatrixStack_peek(MatrixStack_t* stack);
+
+bool MatrixStack_isFull(MatrixStack_t* stack);
+
+bool MatrixStack_isEmpty(MatrixStack_t* stack);
+
 void Context_init(Context_t* context, uint32_t width, uint32_t height);
 
 // Reset the matricies to their identities for each frame
@@ -55,7 +83,7 @@ void Renderer_addVertex(Renderer_t* renderer, Vertex_t vertex);
 
 void Renderer_begin(Renderer_t* renderer);
 
-void Renderer_end(Renderer_t* renderer);
+void Renderer_push(Renderer_t* renderer);
 
 uint32_t Shader_createProgram(const char* vertexShader, const char* fragShader);
 
