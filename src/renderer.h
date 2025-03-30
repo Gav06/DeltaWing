@@ -11,7 +11,7 @@
 #define MAX_TRIANGLES 2048
 #define MAX_VERTICIES MAX_TRIANGLES * 3
 
-#define MAX_MATRIX_STACK_SIZE 128
+#define MAX_MATRIX_STACK_SIZE 127
 
 /**
  * A stack data structure for matricies
@@ -19,8 +19,8 @@
  * Similar to the old glPushMatrix library functions
  */ 
 typedef struct MatrixStack {
-    mat4* array[MAX_MATRIX_STACK_SIZE];
-    uint8_t top;
+    CGLM_ALIGN_MAT mat4 array[MAX_MATRIX_STACK_SIZE];
+    int top;
 } MatrixStack_t;
 
 typedef struct Vertex {
@@ -32,8 +32,8 @@ typedef struct Context {
     vec3 camPos;
     uint32_t displayWidth;
     uint32_t displayHeight;
-    mat4 projection;
-    mat4 model;
+    mat4 projectionMatrix;
+    MatrixStack_t* matrixStack;
 } Context_t;
 
 /**
@@ -56,7 +56,7 @@ typedef struct DynamicRenderer {
 void MatrixStack_init(MatrixStack_t* stack);
 
 // Push a new layer to the stack
-void MatrixStack_push(MatrixStack_t* stack);
+void MatrixStack_push(MatrixStack_t* stack, mat4 matrix);
 
 // Pop the actively pushed layer
 mat4* MatrixStack_pop(MatrixStack_t* stack);
@@ -68,10 +68,14 @@ bool MatrixStack_isFull(MatrixStack_t* stack);
 
 bool MatrixStack_isEmpty(MatrixStack_t* stack);
 
+// Pushes a copy of the current matrix on top
+void DW_pushMatrix(MatrixStack_t* stack);
+// pops
+void DW_popMatrix(MatrixStack_t* stack);
+
 void Context_init(Context_t* context, uint32_t width, uint32_t height);
 
-// Reset the matricies to their identities for each frame
-void Context_refresh(Context_t* context);
+void Context_free(Context_t* context);
 
 void Renderer_init(Renderer_t* renderer, Context_t* context);
 

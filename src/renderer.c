@@ -3,6 +3,11 @@
 
 #include "renderer.h"
 
+/* 
+The following functions are for interfacing with the
+MatrixStack struct directly, but DW_pushMatrix & DW_popMatrix will
+serve as a more abstracted form, similar to glPushMatrix & glPopMatrix
+*/
 void MatrixStack_init(MatrixStack_t* stack) {
     stack->top = -1;
 }
@@ -14,7 +19,7 @@ void MatrixStack_push(MatrixStack_t* stack, mat4 matrix) {
         return;
     }
 
-    stack->array[++stack->top] = matrix;
+    glm_mat4_copy(matrix, stack->array[++stack->top]);
 }
 
 mat4* MatrixStack_pop(MatrixStack_t* stack) {
@@ -23,9 +28,7 @@ mat4* MatrixStack_pop(MatrixStack_t* stack) {
         return NULL;
     }
 
-    mat4* popped = stack->array[stack->top];
-    stack->array[stack->top--] = NULL;
-    return popped;
+    return &stack->array[stack->top--];
 }
 
 mat4* MatrixStack_peek(MatrixStack_t* stack) {
@@ -34,7 +37,7 @@ mat4* MatrixStack_peek(MatrixStack_t* stack) {
         return NULL;
     }
 
-    return stack->array[stack->top];
+    return &stack->array[stack->top];
 }
 
 bool MatrixStack_isFull(MatrixStack_t* stack) {
@@ -43,6 +46,14 @@ bool MatrixStack_isFull(MatrixStack_t* stack) {
 
 bool MatrixStack_isEmpty(MatrixStack_t* stack) {
     return stack->top == -1;
+}
+
+void DW_pushMatrix(MatrixStack_t* stack) {
+    MatrixStack_push(stack, *MatrixStack_peek(stack));
+}
+
+void DW_popMatrix(MatrixStack_t* stack) {
+    MatrixStack_pop(stack);
 }
 
 const char* defaultVertShader =
@@ -98,7 +109,7 @@ void printLog(uint32_t object, GLsizei logLen, GLboolean isShader) {
     
     char* logBuf = malloc(logLen * sizeof(char));
     if (!logBuf) {
-        sprintf(stderr, "Error: Failed to allocate memory for log\n");
+        fprintf(stderr, "Error: Failed to allocate memory for log\n");
         return;
     }
     
@@ -126,7 +137,7 @@ void Shader_checkSrcError(uint32_t shader) {
     }
     
     if (!success) {
-        sprintf(stderr, "Error: Shader compilation failed\n");
+        fprintf(stderr, "Error: Shader compilation failed\n");
     }
 }
 
@@ -144,7 +155,7 @@ void Shader_checkProgError(uint32_t program) {
     }
     
     if (!success) {
-        sprintf(stderr, "Error: Program linking failed\n");
+        fprintf(stderr, "Error: Program linking failed\n");
     }
 }
 
@@ -154,13 +165,21 @@ void Context_init(Context_t* c, uint32_t width, uint32_t height) {
     // display dimensions
     c->displayWidth = width;
     c->displayHeight = height;
-    // Setup matricies to their identities
-    Context_refresh(c);
+    // Setup matricies & transformation matrix stack
+
+    c->matrixStack = malloc(sizeof(MatrixStack_t));
+    MatrixStack_init(c->matrixStack);
+    mat4 transform;
+    glm_mat4_identity(transform);
+    // push our identity transformation
+    MatrixStack_push(c->matrixStack, transform);
+    
+    glm_ortho(0.0f, (float) c->displayWidth, (float) c->displayHeight, 0.0f, -1.0f, 0.0f, c->projectionMatrix);
 }
 
-void Context_refresh(Context_t* c) {
-    glm_mat4_identity(c->model);
-    glm_ortho(0.0f, (float) c->displayWidth, (float) c->displayHeight, 0.0f, -1.0f, 0.0f, c->projection);
+void Context_free(Context_t* context) {
+    free(context->matrixStack);
+    free(context);
 }
 
 void Renderer_init(Renderer_t* r, Context_t* c) {
@@ -210,6 +229,7 @@ void Renderer_free(Renderer_t* r) {
     glDeleteBuffers(1, &r->vbo);
     glDeleteVertexArrays(1, &r->vao);
     glDeleteProgram(r->shader);
+    free(r);
 }
 
 void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
@@ -238,8 +258,8 @@ void Renderer_push(Renderer_t* r) {
     // use shader
     glUseProgram(r->shader);
     // pass matrix data
-    glUniformMatrix4fv(0, 1, GL_FALSE, *r->context->projection);
-    glUniformMatrix4fv(1, 1, GL_FALSE, *r->context->model);
+    glUniformMatrix4fv(0, 1, GL_FALSE, *r->context->projectionMatrix);
+    glUniformMatrix4fv(1, 1, GL_FALSE, (const GLfloat*) MatrixStack_peek(r->context->matrixStack));
     // pass vertex data to GPU
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
     // draw call

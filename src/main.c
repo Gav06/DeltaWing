@@ -17,6 +17,7 @@
 
 GLFWwindow* window;
 Input_t* input;
+
 Context_t* context;
 Renderer_t* dynRenderer;
 
@@ -85,7 +86,7 @@ int DW_initWindow() {
     }
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-        sprintf(stderr, "Error: Couldn't load OpenGL\n");
+        fprintf(stderr, "Error: Couldn't load OpenGL\n");
         return 1;
     }
 
@@ -102,20 +103,18 @@ void DW_initGame() {
 
     dynRenderer = malloc(sizeof(Renderer_t));
     Renderer_init(dynRenderer, context);
-    dynRenderer->primitive = GL_TRIANGLE_STRIP;
+
     Renderer_bind(dynRenderer);
+    dynRenderer->primitive = GL_TRIANGLE_STRIP;
 
     // Initialize with zeroes
     input = calloc(1, sizeof(Input_t));
 }
 
 void DW_exitGame() {
-    // Free renderer gpu buffers
+    // Free up vram and heap
     Renderer_free(dynRenderer);
-    // Free renderer memory
-    free(dynRenderer);
-    free(context);
-
+    Context_free(context);
     free(input);
 }
 
@@ -125,7 +124,7 @@ const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
 const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 
 void DW_tick() {
-    // update camera
+    //update camera
     int moveX = 0;
     int moveY = 0;
     if (DW_isKeyDown(input, GLFW_KEY_A)) {
@@ -147,12 +146,37 @@ void DW_tick() {
 
 void DW_render(float partialTicks) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    Context_refresh(context);
-
     // drawing a "quad" with triangle strip because GL_QUAD is deprecated, 
     // and doesn't even work on unix-like builds
 	
-    glm_translate(context->model, (vec3) {cameraX, cameraY, 0});
+    DW_pushMatrix(context->matrixStack);
+    glm_translate(*MatrixStack_peek(context->matrixStack), (vec3) { cameraX, cameraY, 0.0f });
+    glm_rotate(*MatrixStack_peek(context->matrixStack), glfwGetTime(), (vec3) { 0.0f, 0.0f, 1.0f });
+
+
+    Renderer_begin(dynRenderer);
+
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { left, bottom, 0.0f },
+        { 1.0f, 1.0f, 0.0f, 1.0f }
+    });
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { left, top, 0.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f }
+    });
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { right, bottom, 0.0f },
+        { 0.0f, 0.0f, 1.0f, 1.0f }
+    });
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { right, top, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 1.0f }
+    });
+
+    Renderer_push(dynRenderer);
+
+    DW_popMatrix(context->matrixStack);
+
     Renderer_begin(dynRenderer);
 
     Renderer_addVertex(dynRenderer, (Vertex_t) {
@@ -191,6 +215,7 @@ int main(int argc, char** argv) {
 
     // Game loop
     while (!glfwWindowShouldClose(window)) {
+
         // uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
         frameStart = DW_currentTimeMillis();
         deltaTime = frameStart - lastTime;
@@ -210,22 +235,6 @@ int main(int argc, char** argv) {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-        
-        /*
-        // // printf("mx %d my %d\n", input->mouseX, input->mouseY);
-        // // FPS Counter (updated once every 1000ms)
-        // frames++;
-        // if (currentFrameTime - lastFrame >= 1000) {
-        //     fps = frames;
-        //     frames = 0;
-        //     lastFrame = currentFrameTime;
-            
-        //     // buffer of 24 bytes gives us like a max of 5 or 6 digits for fps format idk
-        //     char buf[24];
-        //     snprintf(buf, 24, "DeltaWing FPS: %d", fps);
-        //     glfwSetWindowTitle(window, buf);
-        // }
-        */
     }
 
     // This must be called before destroying our context because
