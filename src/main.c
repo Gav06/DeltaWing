@@ -116,6 +116,7 @@ void DW_exitGame() {
     Renderer_free(dynRenderer);
     Context_free(context);
     free(input);
+    input = NULL;
 }
 
 const float left = (DISPLAY_WIDTH / 2) - 200.0f;
@@ -146,12 +147,14 @@ void DW_tick() {
 
 void DW_render(float partialTicks) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // drawing a "quad" with triangle strip because GL_QUAD is deprecated, 
     // and doesn't even work on unix-like builds
 	
     DW_pushMatrix(context->matrixStack);
-    glm_translate(*MatrixStack_peek(context->matrixStack), (vec3) { cameraX, cameraY, 0.0f });
-    glm_rotate(*MatrixStack_peek(context->matrixStack), glfwGetTime(), (vec3) { 0.0f, 0.0f, 1.0f });
+    DW_translate(context->matrixStack, (vec3) { cameraX, cameraY, 0.0f });
+    DW_rotate(context->matrixStack, glfwGetTime(), (vec3) { 0.0f, 0.0f, 1.0f });
 
 
     Renderer_begin(dynRenderer);
@@ -197,6 +200,9 @@ void DW_render(float partialTicks) {
     });
 
     Renderer_push(dynRenderer);
+
+    glPolygonMode(GL_FILL, GL_FRONT_AND_BACK);
+
 }
 
 int main(int argc, char** argv) {

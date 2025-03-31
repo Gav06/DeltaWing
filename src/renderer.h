@@ -73,6 +73,10 @@ void DW_pushMatrix(MatrixStack_t* stack);
 // pops
 void DW_popMatrix(MatrixStack_t* stack);
 
+void DW_translate(MatrixStack_t* stack, vec3 vector);
+
+void DW_rotate(MatrixStack_t* stack, float angle, vec3 axis);
+
 void Context_init(Context_t* context, uint32_t width, uint32_t height);
 
 void Context_free(Context_t* context);

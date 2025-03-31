@@ -56,6 +56,14 @@ void DW_popMatrix(MatrixStack_t* stack) {
     MatrixStack_pop(stack);
 }
 
+void DW_translate(MatrixStack_t* stack, vec3 vector) {
+    glm_translate(*MatrixStack_peek(stack), vector);
+}
+
+void DW_rotate(MatrixStack_t* stack, float angle, vec3 axis) {
+    glm_rotate(*MatrixStack_peek(stack), angle, axis);
+}
+
 const char* defaultVertShader =
     "#version 460 core                              \n"
     "layout (location = 0) in vec3 aPos;            \n"
@@ -180,6 +188,9 @@ void Context_init(Context_t* c, uint32_t width, uint32_t height) {
 void Context_free(Context_t* context) {
     free(context->matrixStack);
     free(context);
+    
+    context->matrixStack = NULL;
+    context = NULL;
 }
 
 void Renderer_init(Renderer_t* r, Context_t* c) {
@@ -198,7 +209,8 @@ void Renderer_init(Renderer_t* r, Context_t* c) {
 
     glGenBuffers(1, &r->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), NULL, GL_DYNAMIC_DRAW);
+    // We use STREAM_DRAW with an orphaned buffer because we will frequently call glBufferSubData whilst rendering
+    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), NULL, GL_STREAM_DRAW);
 
     // location 0, 3 elements, size float, normalized false, stride 7 of floats (xyz rgba)
     glEnableVertexAttribArray(0);
@@ -230,6 +242,7 @@ void Renderer_free(Renderer_t* r) {
     glDeleteVertexArrays(1, &r->vao);
     glDeleteProgram(r->shader);
     free(r);
+    r = NULL;
 }
 
 void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
