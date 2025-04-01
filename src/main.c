@@ -13,11 +13,11 @@
 #define TARGET_TPS 60
 #define MS_PER_TICK (1000 / TARGET_TPS)
 
-GLFWwindow* window;
-Input_t* input;
+GLFWwindow *window;
+Input_t *input;
 
-Context_t* context;
-Renderer_t* dynRenderer;
+Context_t *context;
+Renderer_t *dynRenderer;
 
 uint32_t fps;
 
@@ -33,7 +33,7 @@ Scene_t mainMenuScene = {
 
 
 // Our scene defaults to the main menu
-Scene_t* currentScene = &mainMenuScene;
+Scene_t *currentScene = &mainMenuScene;
 
 // skidded from stackoverflow, requires gnu lib sys/time.h
 int64_t DW_currentTimeMillis() {
@@ -44,24 +44,24 @@ int64_t DW_currentTimeMillis() {
   return s1 + s2;
 }
 
-void DW_errorCallback(int error, const char* description) {
+void DW_errorCallback(int error, const char *description) {
     fprintf(stderr, "Error: %d %s\n", error, description);
 }
 
-void DW_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+void DW_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (key >= 32 && key <= 348) {
         input->keyStates[key] = action; 
         input->currentMods = mods;
     }
 }
 
-void DW_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+void DW_mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
     if (0 <= button <= 8) {
         input->mouseState[button] = action;
     }
 }
 
-void DW_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+void DW_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
     input->prevMouseX = input->mouseX;
     input->prevMouseY = input->mouseY;
     input->mouseX = (uint32_t) xpos;
@@ -99,13 +99,13 @@ int DW_initWindow() {
         return 1;
     }
 
-    const char* version = glGetString(GL_VERSION);
+    const char *version = glGetString(GL_VERSION);
     printf("OpenGL %s\n", version);
 
     return 0;
 }
 
-void DW_setScene(Scene_t* scene) {
+void DW_setScene(Scene_t *scene) {
     if (scene != NULL) {
 
         if (currentScene != NULL) currentScene->exit();
@@ -183,7 +183,7 @@ void DW_render(float partialTicks) {
     
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     if (DW_initWindow())
         return 1;
     

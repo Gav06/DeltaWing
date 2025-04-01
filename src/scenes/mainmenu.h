@@ -11,7 +11,7 @@ void MainMenu_tick() {
 
 }
 
-void MainMenu_render(Renderer_t* renderer, Context_t* context) {
+void MainMenu_render(Renderer_t *renderer, Context_t *context) {
 
 }
 

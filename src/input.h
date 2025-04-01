@@ -17,6 +17,6 @@ typedef struct Input {
     uint32_t currentMods;
 } Input_t;
 
-bool DW_isKeyDown(Input_t* input, int32_t key);
+bool DW_isKeyDown(Input_t *input, int32_t key);
 
 #endif

@@ -37,7 +37,7 @@ typedef struct Context {
     vec3 camPos;
     // matricies
     mat4 projectionMatrix;
-    MatrixStack_t* matrixStack;
+    MatrixStack_t *matrixStack;
 } Context_t;
 
 /**
@@ -55,58 +55,58 @@ typedef struct Renderer {
 
     GLenum primitive;
 
-    Context_t* context;
-    Vertex_t* vertexData;
+    Context_t *context;
+    Vertex_t *vertexData;
 } Renderer_t;
 
 
 // Initializes our stack
-void MatrixStack_init(MatrixStack_t* stack);
+void MatrixStack_init(MatrixStack_t *stack);
 
 // Push a new layer to the stack
-void MatrixStack_push(MatrixStack_t* stack, mat4 matrix);
+void MatrixStack_push(MatrixStack_t *stack, mat4 matrix);
 
 // Pop the actively pushed layer
-mat4* MatrixStack_pop(MatrixStack_t* stack);
+mat4* MatrixStack_pop(MatrixStack_t *stack);
 
 // Get the current matrix on top of the stack
-mat4* MatrixStack_peek(MatrixStack_t* stack);
+mat4* MatrixStack_peek(MatrixStack_t *stack);
 
-bool MatrixStack_isFull(MatrixStack_t* stack);
+bool MatrixStack_isFull(MatrixStack_t *stack);
 
-bool MatrixStack_isEmpty(MatrixStack_t* stack);
+bool MatrixStack_isEmpty(MatrixStack_t *stack);
 
 // Pushes a COPY of the current matrix on top
-void MatrixStack_pushMatrix(MatrixStack_t* stack);
+void MatrixStack_pushMatrix(MatrixStack_t *stack);
 
-void MatrixStack_popMatrix(MatrixStack_t* stack);
+void MatrixStack_popMatrix(MatrixStack_t *stack);
 
-void MatrixStack_translate(MatrixStack_t* stack, vec3 vector);
+void MatrixStack_translate(MatrixStack_t *stack, vec3 vector);
 
-void MatrixStack_rotate(MatrixStack_t* stack, float angle, vec3 axis);
+void MatrixStack_rotate(MatrixStack_t *stack, float angle, vec3 axis);
 
-void Context_init(Context_t* context, uint32_t width, uint32_t height);
+void Context_init(Context_t *context, uint32_t width, uint32_t height);
 
-void Context_free(Context_t* context);
+void Context_free(Context_t *context);
 
 // Note that verticies only needs to be specified for static draw
-void Renderer_init(Renderer_t* renderer, Context_t* context, GLenum bufferUsage, Vertex_t* verticies);
+void Renderer_init(Renderer_t *renderer, Context_t *context, GLenum bufferUsage, Vertex_t *verticies);
 
-void Renderer_bind(Renderer_t* renderer);
+void Renderer_bind(Renderer_t *renderer);
 
-void Renderer_free(Renderer_t* renderer);
+void Renderer_free(Renderer_t *renderer);
 
-void Renderer_addVertex(Renderer_t* renderer, Vertex_t vertex);
+void Renderer_addVertex(Renderer_t *renderer, Vertex_t vertex);
 
-void Renderer_beginDynamic(Renderer_t* renderer);
+void Renderer_beginDynamic(Renderer_t *renderer);
 
-void Renderer_drawDynamic(Renderer_t* renderer);
+void Renderer_drawDynamic(Renderer_t *renderer);
 
-void Renderer_drawStatic(Renderer_t* renderer);
+void Renderer_drawStatic(Renderer_t *renderer);
 
-void Renderer_drawStaticInterval(Renderer_t* renderer, uint32_t start, uint32_t amount);
+void Renderer_drawStaticInterval(Renderer_t *renderer, uint32_t start, uint32_t amount);
 
-uint32_t Shader_createProgram(const char* vertexShader, const char* fragShader);
+uint32_t Shader_createProgram(const char *vertexShader, const char *fragShader);
 
 void Shader_checkSrcError(uint32_t shader);
 

@@ -24,9 +24,9 @@ typedef struct GameObj {
 // dynamic array for GameObjects to be added/removed at runtime in scenes
 typedef struct GameObjArray {
     uint32_t size;
-    GameObj_t* ptr;
+    GameObj_t *ptr;
 } GameObjArray_t;
 
-bool Rect_isInside(Rect_t* rect, vec2 point);
+bool Rect_isInside(Rect_t *rect, vec2 point);
 
 #endif

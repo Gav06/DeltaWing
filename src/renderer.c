@@ -8,11 +8,11 @@ The following functions are for interfacing with the
 MatrixStack struct directly, but DW_pushMatrix & DW_popMatrix will
 serve as a more abstracted form, similar to glPushMatrix & glPopMatrix
 */
-void MatrixStack_init(MatrixStack_t* stack) {
+void MatrixStack_init(MatrixStack_t *stack) {
     stack->top = -1;
 }
 
-void MatrixStack_push(MatrixStack_t* stack, mat4 matrix) {
+void MatrixStack_push(MatrixStack_t *stack, mat4 matrix) {
     if (MatrixStack_isFull(stack)) {
         // Stack overflow case
         fprintf(stderr, "Error: Stack size exceeds limit of %d. (stack overflow)\n", MAX_MATRIX_STACK_SIZE);
@@ -22,7 +22,7 @@ void MatrixStack_push(MatrixStack_t* stack, mat4 matrix) {
     glm_mat4_copy(matrix, stack->array[++stack->top]);
 }
 
-mat4* MatrixStack_pop(MatrixStack_t* stack) {
+mat4* MatrixStack_pop(MatrixStack_t *stack) {
     if (MatrixStack_isEmpty(stack)) {
         fprintf(stderr, "Error: Attempted to pop empty stack. (stack underflow)\n");
         return NULL;
@@ -31,7 +31,7 @@ mat4* MatrixStack_pop(MatrixStack_t* stack) {
     return &stack->array[stack->top--];
 }
 
-mat4* MatrixStack_peek(MatrixStack_t* stack) {
+mat4* MatrixStack_peek(MatrixStack_t *stack) {
     if (MatrixStack_isEmpty(stack)) {
         fprintf(stderr, "Error: Attempted to peek empty stack.\n");
         return NULL;
@@ -40,31 +40,31 @@ mat4* MatrixStack_peek(MatrixStack_t* stack) {
     return &stack->array[stack->top];
 }
 
-bool MatrixStack_isFull(MatrixStack_t* stack) {
+bool MatrixStack_isFull(MatrixStack_t *stack) {
     return stack->top >= MAX_MATRIX_STACK_SIZE - 1;
 }
 
-bool MatrixStack_isEmpty(MatrixStack_t* stack) {
+bool MatrixStack_isEmpty(MatrixStack_t *stack) {
     return stack->top == -1;
 }
 
-void MatrixStack_pushMatrix(MatrixStack_t* stack) {
+void MatrixStack_pushMatrix(MatrixStack_t *stack) {
     MatrixStack_push(stack, *MatrixStack_peek(stack));
 }
 
-void MatrixStack_popMatrix(MatrixStack_t* stack) {
+void MatrixStack_popMatrix(MatrixStack_t *stack) {
     MatrixStack_pop(stack);
 }
 
-void MatrixStack_translate(MatrixStack_t* stack, vec3 vector) {
+void MatrixStack_translate(MatrixStack_t *stack, vec3 vector) {
     glm_translate(*MatrixStack_peek(stack), vector);
 }
 
-void MatrixStack_rotate(MatrixStack_t* stack, float angle, vec3 axis) {
+void MatrixStack_rotate(MatrixStack_t *stack, float angle, vec3 axis) {
     glm_rotate(*MatrixStack_peek(stack), angle, axis);
 }
 
-const char* defaultVertShader =
+const char *defaultVertShader =
     "#version 460 core                              \n"
     "layout (location = 0) in vec3 aPos;            \n"
     "layout (location = 1) in vec4 aColor;          \n"
@@ -78,7 +78,7 @@ const char* defaultVertShader =
     "   vertexColor = aColor;                       \n"
     "}                                              \n";
 
-const char* defaultFragShader = 
+const char *defaultFragShader = 
     "#version 460 core                              \n"
     "in vec4 vertexColor;                           \n"
     "in vec3 fragCoord;                             \n"
@@ -87,7 +87,7 @@ const char* defaultFragShader =
     "    fragColor = vertexColor;                   \n"
     "}                                              \n";
 
-uint32_t Shader_createProgram(const char* vertShader, const char* fragShader) {
+uint32_t Shader_createProgram(const char *vertShader, const char *fragShader) {
     uint32_t vs = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vs, 1, &vertShader, NULL);
     glCompileShader(vs);
@@ -115,7 +115,7 @@ uint32_t Shader_createProgram(const char* vertShader, const char* fragShader) {
 void printLog(uint32_t object, GLsizei logLen, GLboolean isShader) {
     if (logLen <= 0) return;
     
-    char* logBuf = malloc(logLen * sizeof(char));
+    char *logBuf = malloc(logLen * sizeof(char));
     if (!logBuf) {
         fprintf(stderr, "Error: Failed to allocate memory for log\n");
         return;
@@ -167,7 +167,7 @@ void Shader_checkProgError(uint32_t program) {
     }
 }
 
-void Context_init(Context_t* c, uint32_t width, uint32_t height) {
+void Context_init(Context_t *c, uint32_t width, uint32_t height) {
     // default cam pos
     glm_vec3_zero(c->camPos);
     // display dimensions
@@ -185,7 +185,7 @@ void Context_init(Context_t* c, uint32_t width, uint32_t height) {
     glm_ortho(0.0f, (float) c->displayWidth, (float) c->displayHeight, 0.0f, -1.0f, 0.0f, c->projectionMatrix);
 }
 
-void Context_free(Context_t* context) {
+void Context_free(Context_t *context) {
     free(context->matrixStack);
     free(context);
     
@@ -193,7 +193,7 @@ void Context_free(Context_t* context) {
     context = NULL;
 }
 
-void Renderer_init(Renderer_t* r, Context_t* c, GLenum bufferUsage, Vertex_t* verticies) {
+void Renderer_init(Renderer_t *r, Context_t *c, GLenum bufferUsage, Vertex_t *verticies) {
     // our renderer will use the matricies from our render context
     // in the vertex shader
     r->context = c;
@@ -229,13 +229,13 @@ void Renderer_init(Renderer_t* r, Context_t* c, GLenum bufferUsage, Vertex_t* ve
     r->isBound = GL_FALSE;
 }
 
-void Renderer_bind(Renderer_t* r) {
+void Renderer_bind(Renderer_t *r) {
     glBindVertexArray(r->vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     r->isBound = GL_TRUE;
 }
 
-bool Renderer_checkBound(Renderer_t* r) {
+bool Renderer_checkBound(Renderer_t *r) {
     if (!r->isBound) {
         fprintf(stderr, "Error: Buffers of current Renderer are not bound!\n");
         return true;
@@ -244,7 +244,7 @@ bool Renderer_checkBound(Renderer_t* r) {
     return false;
 }
 
-void Renderer_free(Renderer_t* r) {
+void Renderer_free(Renderer_t *r) {
     glDeleteBuffers(1, &r->vbo);
     glDeleteVertexArrays(1, &r->vao);
     glDeleteProgram(r->shader);
@@ -252,7 +252,7 @@ void Renderer_free(Renderer_t* r) {
     r = NULL;
 }
 
-void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
+void Renderer_addVertex(Renderer_t *r, Vertex_t v) {
     if (Renderer_checkBound(r)) return;
 
     if (r->vertexCount >= MAX_VERTICIES) {
@@ -264,14 +264,14 @@ void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
     r->vertexCount++;
 }
 
-void Renderer_beginDynamic(Renderer_t* r) {
+void Renderer_beginDynamic(Renderer_t *r) {
     if (Renderer_checkBound(r)) return;
     // clear vertex data using memset (disabled)
     // memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
     r->vertexCount = 0;
 }
 
-void Renderer_drawDynamic(Renderer_t* r) {
+void Renderer_drawDynamic(Renderer_t *r) {
     // assuming this renderer is already bound and in-use
     if (Renderer_checkBound(r)) return;
 
@@ -287,9 +287,9 @@ void Renderer_drawDynamic(Renderer_t* r) {
 }
 
 // start is inclusive, end is 
-void Renderer_drawStaticInterval(Renderer_t* r, uint32_t start, uint32_t amount) {
+void Renderer_drawStaticInterval(Renderer_t *r, uint32_t start, uint32_t amount) {
     if (Renderer_checkBound(r)) return;
 }
 
-void Renderer_drawStatic(Renderer_t* r) {
+void Renderer_drawStatic(Renderer_t *r) {
 }
