@@ -44,16 +44,19 @@ typedef struct Context {
  * Dynamic renderer struct, used for moving objects and things that will have their 
  * vertex data re-uploaded every frame
  */
-typedef struct DynamicRenderer {
+typedef struct Renderer {
+    GLboolean isBound;
+
     uint32_t shader;
     uint32_t vao;
     uint32_t vbo;
+    
     uint32_t vertexCount;
+
     GLenum primitive;
-    vec3 camPos;
-    GLboolean isBound;
+
     Context_t* context;
-    Vertex_t vertexData[MAX_VERTICIES];
+    Vertex_t* vertexData;
 } Renderer_t;
 
 
@@ -73,20 +76,21 @@ bool MatrixStack_isFull(MatrixStack_t* stack);
 
 bool MatrixStack_isEmpty(MatrixStack_t* stack);
 
-// Pushes a copy of the current matrix on top
-void DW_pushMatrix(MatrixStack_t* stack);
-// pops
-void DW_popMatrix(MatrixStack_t* stack);
+// Pushes a COPY of the current matrix on top
+void MatrixStack_pushMatrix(MatrixStack_t* stack);
 
-void DW_translate(MatrixStack_t* stack, vec3 vector);
+void MatrixStack_popMatrix(MatrixStack_t* stack);
 
-void DW_rotate(MatrixStack_t* stack, float angle, vec3 axis);
+void MatrixStack_translate(MatrixStack_t* stack, vec3 vector);
+
+void MatrixStack_rotate(MatrixStack_t* stack, float angle, vec3 axis);
 
 void Context_init(Context_t* context, uint32_t width, uint32_t height);
 
 void Context_free(Context_t* context);
 
-void Renderer_init(Renderer_t* renderer, Context_t* context);
+// Note that verticies only needs to be specified for static draw
+void Renderer_init(Renderer_t* renderer, Context_t* context, GLenum bufferUsage, Vertex_t* verticies);
 
 void Renderer_bind(Renderer_t* renderer);
 
@@ -94,9 +98,13 @@ void Renderer_free(Renderer_t* renderer);
 
 void Renderer_addVertex(Renderer_t* renderer, Vertex_t vertex);
 
-void Renderer_begin(Renderer_t* renderer);
+void Renderer_beginDynamic(Renderer_t* renderer);
 
-void Renderer_push(Renderer_t* renderer);
+void Renderer_drawDynamic(Renderer_t* renderer);
+
+void Renderer_drawStatic(Renderer_t* renderer);
+
+void Renderer_drawStaticInterval(Renderer_t* renderer, uint32_t start, uint32_t amount);
 
 uint32_t Shader_createProgram(const char* vertexShader, const char* fragShader);
 

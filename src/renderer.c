@@ -48,19 +48,19 @@ bool MatrixStack_isEmpty(MatrixStack_t* stack) {
     return stack->top == -1;
 }
 
-void DW_pushMatrix(MatrixStack_t* stack) {
+void MatrixStack_pushMatrix(MatrixStack_t* stack) {
     MatrixStack_push(stack, *MatrixStack_peek(stack));
 }
 
-void DW_popMatrix(MatrixStack_t* stack) {
+void MatrixStack_popMatrix(MatrixStack_t* stack) {
     MatrixStack_pop(stack);
 }
 
-void DW_translate(MatrixStack_t* stack, vec3 vector) {
+void MatrixStack_translate(MatrixStack_t* stack, vec3 vector) {
     glm_translate(*MatrixStack_peek(stack), vector);
 }
 
-void DW_rotate(MatrixStack_t* stack, float angle, vec3 axis) {
+void MatrixStack_rotate(MatrixStack_t* stack, float angle, vec3 axis) {
     glm_rotate(*MatrixStack_peek(stack), angle, axis);
 }
 
@@ -193,7 +193,7 @@ void Context_free(Context_t* context) {
     context = NULL;
 }
 
-void Renderer_init(Renderer_t* r, Context_t* c) {
+void Renderer_init(Renderer_t* r, Context_t* c, GLenum bufferUsage, Vertex_t* verticies) {
     // our renderer will use the matricies from our render context
     // in the vertex shader
     r->context = c;
@@ -209,8 +209,13 @@ void Renderer_init(Renderer_t* r, Context_t* c) {
 
     glGenBuffers(1, &r->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    // We use STREAM_DRAW with an orphaned buffer because we will frequently call glBufferSubData whilst rendering
-    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), NULL, GL_STREAM_DRAW);
+    // We use an orphaned buffer if not using static draw
+    if (bufferUsage != GL_STATIC_DRAW) {
+        r->vertexData = malloc(sizeof(Vertex_t) * MAX_VERTICIES);
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), NULL, bufferUsage);
+    } else {
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), verticies, bufferUsage);
+    }
 
     // location 0, 3 elements, size float, normalized false, stride 7 of floats (xyz rgba)
     glEnableVertexAttribArray(0);
@@ -230,11 +235,13 @@ void Renderer_bind(Renderer_t* r) {
     r->isBound = GL_TRUE;
 }
 
-void Renderer_checkBound(Renderer_t* r) {
+bool Renderer_checkBound(Renderer_t* r) {
     if (!r->isBound) {
         fprintf(stderr, "Error: Buffers of current Renderer are not bound!\n");
-        return;
+        return true;
     }
+
+    return false;
 }
 
 void Renderer_free(Renderer_t* r) {
@@ -246,7 +253,7 @@ void Renderer_free(Renderer_t* r) {
 }
 
 void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
-    Renderer_checkBound(r);
+    if (Renderer_checkBound(r)) return;
 
     if (r->vertexCount >= MAX_VERTICIES) {
         fprintf(stderr, "Error: Vertex buffer full!\n");
@@ -257,16 +264,16 @@ void Renderer_addVertex(Renderer_t* r, Vertex_t v) {
     r->vertexCount++;
 }
 
-void Renderer_begin(Renderer_t* r) {
-    Renderer_checkBound(r);
+void Renderer_beginDynamic(Renderer_t* r) {
+    if (Renderer_checkBound(r)) return;
     // clear vertex data using memset (disabled)
     // memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
     r->vertexCount = 0;
 }
 
-void Renderer_push(Renderer_t* r) {
+void Renderer_drawDynamic(Renderer_t* r) {
     // assuming this renderer is already bound and in-use
-    Renderer_checkBound(r);
+    if (Renderer_checkBound(r)) return;
 
     // use shader
     glUseProgram(r->shader);
@@ -277,4 +284,12 @@ void Renderer_push(Renderer_t* r) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
     // draw call
     glDrawArrays(r->primitive, 0, r->vertexCount);
+}
+
+// start is inclusive, end is 
+void Renderer_drawStaticInterval(Renderer_t* r, uint32_t start, uint32_t amount) {
+    if (Renderer_checkBound(r)) return;
+}
+
+void Renderer_drawStatic(Renderer_t* r) {
 }

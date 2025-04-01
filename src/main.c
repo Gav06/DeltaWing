@@ -13,12 +13,6 @@
 #define TARGET_TPS 60
 #define MS_PER_TICK (1000 / TARGET_TPS)
 
-// scene id numbers
-#define SCENE_MENU          0
-#define SCENE_LEVEL_SELECT  1
-
-// Our global game state struct containers
-
 GLFWwindow* window;
 Input_t* input;
 
@@ -127,7 +121,7 @@ void DW_initGame() {
     Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
     dynRenderer = malloc(sizeof(Renderer_t));
-    Renderer_init(dynRenderer, context);
+    Renderer_init(dynRenderer, context, GL_DYNAMIC_DRAW, NULL);
 
     Renderer_bind(dynRenderer);
     dynRenderer->primitive = GL_TRIANGLE_STRIP;
@@ -164,6 +158,29 @@ void DW_render(float partialTicks) {
     if (currentScene != NULL) {
         currentScene->render(dynRenderer, context);
     }
+
+    dynRenderer->primitive = GL_TRIANGLE_STRIP;
+
+    Renderer_beginDynamic(dynRenderer);
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { left, bottom, 0.0f },
+        { 1.0f, 1.0f, 0.0f }
+    });
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { left, top, 0.0f },
+        { 1.0f, 0.0f, 0.0f }
+    });
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { right, bottom, 0.0f },
+        { 0.0f, 0.0f, 1.0f }
+    });
+    Renderer_addVertex(dynRenderer, (Vertex_t) {
+        { right, top, 0.0f },
+        { 0.0f, 1.0f, 0.0f }
+    });
+    Renderer_drawDynamic(dynRenderer);
+
+    
 }
 
 int main(int argc, char** argv) {
