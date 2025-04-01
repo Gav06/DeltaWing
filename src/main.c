@@ -3,15 +3,19 @@
 #include <sys/time.h>
 
 #include "renderer.h"
-#include "objects.h"
+#include "engine.h"
 #include "input.h"
-
+#include "scenes.h"
 
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
 
 #define TARGET_TPS 60
 #define MS_PER_TICK (1000 / TARGET_TPS)
+
+// scene id numbers
+#define SCENE_MENU          0
+#define SCENE_LEVEL_SELECT  1
 
 // Our global game state struct containers
 
@@ -25,6 +29,17 @@ uint32_t fps;
 
 int32_t cameraX = 0;
 int32_t cameraY = 0;
+
+Scene_t mainMenuScene = {
+    .init = MainMenu_init,
+    .tick = MainMenu_tick,
+    .render = MainMenu_render,
+    .exit = MainMenu_exit
+};
+
+
+// Our scene defaults to the main menu
+Scene_t* currentScene = &mainMenuScene;
 
 // skidded from stackoverflow, requires gnu lib sys/time.h
 int64_t DW_currentTimeMillis() {
@@ -59,7 +74,7 @@ void DW_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
     input->mouseY = (uint32_t) ypos;
 }
 
-int DW_initWindow() {
+int DW_initWindow() {    
     if (!glfwInit()) {
         return 1;
     }
@@ -96,6 +111,16 @@ int DW_initWindow() {
     return 0;
 }
 
+void DW_setScene(Scene_t* scene) {
+    if (scene != NULL) {
+
+        if (currentScene != NULL) currentScene->exit();
+
+        currentScene = scene;
+        scene->init();
+    }
+}
+
 void DW_initGame() {
     // Setup our dynamic renderer & render context
     context = malloc(sizeof(Context_t));
@@ -109,6 +134,8 @@ void DW_initGame() {
 
     // Initialize with zeroes
     input = calloc(1, sizeof(Input_t));
+
+    if (currentScene != NULL) currentScene->init();
 }
 
 void DW_exitGame() {
@@ -125,84 +152,18 @@ const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
 const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
 
 void DW_tick() {
-    //update camera
-    int moveX = 0;
-    int moveY = 0;
-    if (DW_isKeyDown(input, GLFW_KEY_A)) {
-        moveX -= 10;
+    if (currentScene != NULL) {
+        currentScene->tick();
     }
-    if (DW_isKeyDown(input, GLFW_KEY_D)) {
-        moveX += 10;
-    }
-    if (DW_isKeyDown(input, GLFW_KEY_W)) {
-        moveY -= 10;
-    }
-    if (DW_isKeyDown(input, GLFW_KEY_S)) {
-        moveY += 10;
-    }
-
-    cameraX += moveX;
-    cameraY += moveY;
 }
 
 void DW_render(float partialTicks) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    // drawing a "quad" with triangle strip because GL_QUAD is deprecated, 
-    // and doesn't even work on unix-like builds
-	
-    DW_pushMatrix(context->matrixStack);
-    DW_translate(context->matrixStack, (vec3) { cameraX, cameraY, 0.0f });
-    DW_rotate(context->matrixStack, glfwGetTime(), (vec3) { 0.0f, 0.0f, 1.0f });
-
-
-    Renderer_begin(dynRenderer);
-
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { left, bottom, 0.0f },
-        { 1.0f, 1.0f, 0.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { left, top, 0.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { right, bottom, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { right, top, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 1.0f }
-    });
-
-    Renderer_push(dynRenderer);
-
-    DW_popMatrix(context->matrixStack);
-
-    Renderer_begin(dynRenderer);
-
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { left, bottom, 0.0f },
-        { 1.0f, 1.0f, 0.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { left, top, 0.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { right, bottom, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { right, top, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 1.0f }
-    });
-
-    Renderer_push(dynRenderer);
-
-    glPolygonMode(GL_FILL, GL_FRONT_AND_BACK);
-
+    // draw current scene
+    if (currentScene != NULL) {
+        currentScene->render(dynRenderer, context);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -236,6 +197,8 @@ int main(int argc, char** argv) {
         }
 
         const float partialTicks = (float) accumulator / MS_PER_TICK;
+        // partialTicks is apart of Context struct and passed into render so it is accessible from virtually anywhere
+        context->partialTicks = partialTicks;
         
         DW_render(partialTicks);
 

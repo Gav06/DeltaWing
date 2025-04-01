@@ -29,9 +29,13 @@ typedef struct Vertex {
 } Vertex_t;
 
 typedef struct Context {
-    vec3 camPos;
+    // delta time variable
+    float partialTicks;
+    // display size
     uint32_t displayWidth;
     uint32_t displayHeight;
+    vec3 camPos;
+    // matricies
     mat4 projectionMatrix;
     MatrixStack_t* matrixStack;
 } Context_t;
@@ -51,6 +55,7 @@ typedef struct DynamicRenderer {
     Context_t* context;
     Vertex_t vertexData[MAX_VERTICIES];
 } Renderer_t;
+
 
 // Initializes our stack
 void MatrixStack_init(MatrixStack_t* stack);
