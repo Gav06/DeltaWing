@@ -1,4 +1,4 @@
-# Ignore the java code because it all belongs to Mojang and I didn't write it.
-# so I don't want it counted.
+# Ignoring files I don't want counted as my lines of code
 src/glad.c linguist-vendored
+src/stb_image.h linguist-vendored
 include/** linguist-vendored
