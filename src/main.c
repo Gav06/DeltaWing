@@ -6,6 +6,7 @@
 #include "engine.h"
 #include "input.h"
 #include "scenes.h"
+#include "font.h"
 
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
@@ -18,6 +19,7 @@ Input_t *input;
 
 Context_t *context;
 Renderer_t *dynRenderer;
+FontRenderer_t *fontRenderer;
 
 uint32_t fps;
 
@@ -125,6 +127,9 @@ void DW_initGame() {
 
     Renderer_bind(dynRenderer);
     dynRenderer->primitive = GL_TRIANGLE_STRIP;
+
+    fontRenderer = malloc(sizeof(FontRenderer_t));
+    FontRenderer_init(fontRenderer, context, "assets/roboto_mono.fnt");
 
     // Initialize with zeroes
     input = calloc(1, sizeof(Input_t));
