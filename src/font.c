@@ -4,19 +4,13 @@
 #include "renderer.h"
 #include "font.h"
 
-// our image loading library
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 
 typedef struct Block {
     uint8_t type;
     uint32_t size;
 } Block_t;
 
-// Some helper functions to turn bytes into ints
-
-
+// Some helper functions to turn bytes into ints and strings
 uint32_t parse_uint32(const uint8_t *buf, size_t index) {
     if (index + 4 > (sizeof(buf) /  sizeof(uint8_t))) {
         fprintf(stderr, "Error: Attempted uint32_t read, byte index out of range.\n");
@@ -45,13 +39,6 @@ int32_t parse_int32(const uint8_t *buf, size_t index) {
     );
 }
 
-Block_t parse_Block(const uint8_t *buf) {
-    return (Block_t) {
-        buf[0],
-        parse_uint32(buf, 1)
-    };
-}
-
 // Reads byte-by-byte until a null terminator is reached, thanks stackoverflow
 char* parse_string(const uint8_t *buf, size_t size) {
     char* str = malloc(sizeof(char) * size);
@@ -67,6 +54,13 @@ char* parse_string(const uint8_t *buf, size_t size) {
 
     // reallocate string to trim the fat
     return realloc(str, len);
+}
+
+Block_t parse_Block(const uint8_t *buf) {
+    return (Block_t) {
+        buf[0],
+        parse_uint32(buf, 1)
+    };
 }
 
 void read_bytes(uint8_t *buf, FILE *file, size_t amount) {
@@ -120,6 +114,7 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     uint32_t strLen = block1.size - 14;
     read_bytes(buf, filePtr, strLen);
     fontData->fontName = parse_string(buf, strLen);
+    fontData->nameLen = strlen(fontData->fontName);
 
 
     // skip over block 2
@@ -130,12 +125,26 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     read_bytes(buf, filePtr, 5);
     Block_t block3 = parse_Block(buf);
     
-    // our parser will only support reading from 1 font texture, because that is enough for our needs
+    // read texture file name
     read_bytes(buf, filePtr, block3.size);
-    char* texPath = parse_string(buf, block3.size);
-    printf("Texture0 path: %s\n", texPath);
+    char* texName = parse_string(buf, block3.size);
 
-    
+    // open file and parse image using stb_image.h
+    char texPath[128] = "assets/";
+    strcat(texPath, texName);
+    FILE *texFile = fopen(texPath, "rb");
+    if (!texFile) {
+        fprintf(stderr, "Error: Unable to open texture file: %s\n", texPath);
+    }
+    ImageData_t imgData = ImageData_fromFile(texFile);
+    GLuint texId = ImageData_toTexture(&imgData);
+    fontData->texture = texId;
+    ImageData_freeImage(&imgData);
+    fclose(texFile);
+
+    // load char data from section 4
+    printf("GL tex id: %d\n", texId);
+
     fclose(filePtr);
 }
 

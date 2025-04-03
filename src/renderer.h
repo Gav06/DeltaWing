@@ -13,6 +13,20 @@
 
 #define MAX_MATRIX_STACK_SIZE 127
 
+// Used for texture loading
+typedef struct ImageData {
+    int width;
+    int height;
+    int channels;
+    uint8_t *image;
+} ImageData_t;
+
+ImageData_t ImageData_fromFile(FILE *file);
+
+void ImageData_freeImage(ImageData_t* imageData);
+
+GLuint ImageData_toTexture(ImageData_t* imageData);
+
 /**
  * A stack data structure for matricies
  * Mainly used for the model/transformation matrix in our case,

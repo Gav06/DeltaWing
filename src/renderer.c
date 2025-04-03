@@ -3,6 +3,64 @@
 
 #include "renderer.h"
 
+// our image loading library
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+ImageData_t ImageData_fromFile(FILE *file) {
+    int width, height, channels;
+    uint8_t *img = stbi_load_from_file(file, &width, &height, &channels, 0);
+    if (img == NULL) {
+        fprintf(stderr, "Error: Loading image from file.\n");
+    }
+
+    return (ImageData_t) {
+        width,
+        height,
+        channels,
+        img
+    };
+}
+
+void ImageData_freeImage(ImageData_t* imageData) {
+    stbi_image_free(imageData->image);
+}
+
+GLuint ImageData_toTexture(ImageData_t* imgData) {
+    GLuint texId;
+
+    glGenTextures(1, &texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    GLenum format;
+
+    switch (imgData->channels)
+    {
+        case 1:
+            format = GL_RED;
+            break;
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        default:
+            fprintf(stderr, "Error: Unsupported number of texture channels: %d\n", imgData->channels);
+            break;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, imgData->width, imgData->height, 0, format, GL_UNSIGNED_BYTE, imgData->image);
+
+    return texId;
+}
+
 /* 
 The following functions are for interfacing with the
 MatrixStack struct directly, but DW_pushMatrix & DW_popMatrix will

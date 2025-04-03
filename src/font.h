@@ -23,8 +23,10 @@ typedef struct FontData {
     size_t dataLen;
     CharData_t *charData;
 
-    // array of textures for the pages
-    GLuint *textures;
+    // texture for our bitmap.
+    // while this font format supports multiple textures, we will only use 1
+    // for this implementation
+    GLuint texture;
 } FontData_t;
 
 typedef struct FontRenderer {
