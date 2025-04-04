@@ -23,7 +23,21 @@ project(DeltaWing)
 
 
 # Add our source code
-file(GLOB_RECURSE SOURCES "src/*.c" "src/*.cpp")
+set( SOURCES 
+	"src/engine.c" 
+	"src/engine.h"
+	"src/font.c"
+	"src/font.h"
+	"src/glad.c"
+	"src/input.c"
+	"src/input.h"
+	"src/main.c"
+	"src/renderer.c"
+	"src/renderer.h"
+	"src/scenes.h"
+	"src/stb_image.h"
+	"src/scenes/mainmenu.h"
+)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 set(INCLUDE_DEPENDENCIES "${CMAKE_SOURCE_DIR}/include")
@@ -50,4 +64,4 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # Enable optimizations
-target_compile_options(${PROJECT_NAME} PRIVATE -O3)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -g)

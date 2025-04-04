@@ -33,7 +33,6 @@ Scene_t mainMenuScene = {
     .exit = MainMenu_exit
 };
 
-
 // Our scene defaults to the main menu
 Scene_t *currentScene = &mainMenuScene;
 

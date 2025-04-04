@@ -11,11 +11,11 @@ typedef struct Block {
 } Block_t;
 
 // Some helper functions to turn bytes into ints and strings
-uint32_t parse_uint32(const uint8_t *buf, size_t index) {
-    if (index + 4 > (sizeof(buf) /  sizeof(uint8_t))) {
-        fprintf(stderr, "Error: Attempted uint32_t read, byte index out of range.\n");
-        return 0;
-    }
+    uint32_t parse_uint32(const uint8_t *buf, size_t bufSize, size_t index) {
+        if (index + 4 > bufSize) {
+            fprintf(stderr, "Error: Attempted uint32_t read, byte index out of range.\n");
+            return 0;
+        }
 
     return (uint32_t) (
         buf[index] |
@@ -25,7 +25,7 @@ uint32_t parse_uint32(const uint8_t *buf, size_t index) {
     );
 }
 
-int32_t parse_int32(const uint8_t *buf, size_t index) {
+int32_t parse_int32(const uint8_t *buf, size_t bufSize, size_t index) {
     if (index + 4 > (sizeof(buf) /  sizeof(uint8_t))) {
         fprintf(stderr, "Error: Attempted int32_t read, byte index out of range.\n");
         return 0;
@@ -40,14 +40,15 @@ int32_t parse_int32(const uint8_t *buf, size_t index) {
 }
 
 // Reads byte-by-byte until a null terminator is reached, thanks stackoverflow
-char* parse_string(const uint8_t *buf, size_t size) {
-    char* str = malloc(sizeof(char) * size);
+char* parse_string(const uint8_t *buf, size_t bufSize, size_t strSize) {
+    char* str = malloc(sizeof(char) * strSize);
 
     int len = 0;
-    while (len < size && (buf[len] != '\0' || buf[len] != EOF)) {
-        str[len++] = buf[len];
-
-        if (len == size - 1) break;
+    while (len <= bufSize && len < strSize && (buf[len] != '\0' || buf[len] != EOF)) {
+        str[len] = buf[len];
+        len++;
+        
+        if (len == strSize - 1) break;
     }
 
     str[len++] = '\0';
@@ -56,10 +57,10 @@ char* parse_string(const uint8_t *buf, size_t size) {
     return realloc(str, len);
 }
 
-Block_t parse_Block(const uint8_t *buf) {
+Block_t parse_Block(const uint8_t *buf, size_t bufSize) {
     return (Block_t) {
         buf[0],
-        parse_uint32(buf, 1)
+        parse_uint32(buf, bufSize, 1)
     };
 }
 
@@ -95,6 +96,7 @@ int read_Header(uint8_t *buf, FILE *file, FontData_t *fontData) {
 void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     FILE *filePtr = fopen(fontPath, "rb");
     uint8_t buf[128];
+    size_t bufSize = (sizeof(buf) / sizeof(uint8_t));
 
     if (filePtr == NULL) {
         fprintf(stderr, "Error: loading font file: %s\n", fontPath);
@@ -108,26 +110,26 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
 
     // Read only the font name from block 1
 
-    Block_t block1 = parse_Block(buf);
-    // fontName, offset 14
+    Block_t block1 = parse_Block(buf, bufSize);
+    // fontName is 14 bytes ahead
     fseek(filePtr, 14, SEEK_CUR);
     uint32_t strLen = block1.size - 14;
     read_bytes(buf, filePtr, strLen);
-    fontData->fontName = parse_string(buf, strLen);
+    fontData->fontName = parse_string(buf, bufSize, strLen);
     fontData->nameLen = strlen(fontData->fontName);
 
 
     // skip over block 2
     read_bytes(buf, filePtr, 5);
-    fseek(filePtr, parse_Block(buf).size, SEEK_CUR);
+    fseek(filePtr, parse_Block(buf, bufSize).size, SEEK_CUR);
 
     // read block 3 to get our texture
     read_bytes(buf, filePtr, 5);
-    Block_t block3 = parse_Block(buf);
+    Block_t block3 = parse_Block(buf, bufSize);
     
     // read texture file name
     read_bytes(buf, filePtr, block3.size);
-    char* texName = parse_string(buf, block3.size);
+    char* texName = parse_string(buf, bufSize, block3.size);
 
     // open file and parse image using stb_image.h
     char texPath[128] = "assets/";
