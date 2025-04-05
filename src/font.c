@@ -11,11 +11,14 @@ typedef struct Block {
 } Block_t;
 
 // Some helper functions to turn bytes into ints and strings
-    uint32_t parse_uint32(const uint8_t *buf, size_t bufSize, size_t index) {
-        if (index + 4 > bufSize) {
-            fprintf(stderr, "Error: Attempted uint32_t read, byte index out of range.\n");
-            return 0;
-        }
+// Note that the parse_ functions only query the buffers, they do 
+// not write to or modify them in any way. The read_ functions do that.
+
+uint32_t parse_uint32(const uint8_t *buf, size_t bufSize, size_t index) {
+    if (index + 4 > bufSize) {
+        fprintf(stderr, "Error: Attempted uint32_t read, byte index out of range.\n");
+        return 0;
+    }
 
     return (uint32_t) (
         buf[index] |
@@ -26,7 +29,7 @@ typedef struct Block {
 }
 
 int32_t parse_int32(const uint8_t *buf, size_t bufSize, size_t index) {
-    if (index + 4 > (sizeof(buf) /  sizeof(uint8_t))) {
+    if (index + 4 > (bufSize /  sizeof(uint8_t))) {
         fprintf(stderr, "Error: Attempted int32_t read, byte index out of range.\n");
         return 0;
     }
@@ -39,8 +42,25 @@ int32_t parse_int32(const uint8_t *buf, size_t bufSize, size_t index) {
     );
 }
 
+uint16_t parse_uint16(const uint8_t *buf, size_t bufSize, size_t index) {
+    if (index + 2 > (bufSize /  sizeof(uint8_t))) {
+        fprintf(stderr, "Error: Attempted uint16_t read, byte index out of range.\n");
+        return 0;
+    }
+
+    return (uint16_t) (
+        buf[index] |
+        buf[index + 1] << 8
+    );
+}
+
 // Reads byte-by-byte until a null terminator is reached, thanks stackoverflow
 char* parse_string(const uint8_t *buf, size_t bufSize, size_t strSize) {
+    if (strSize > bufSize) {
+        fprintf(stderr, "Error: Attempting to parse string longer than buffer, bytes out of range\n");
+        return NULL;
+    }
+
     char* str = malloc(sizeof(char) * strSize);
 
     int len = 0;
@@ -58,9 +78,39 @@ char* parse_string(const uint8_t *buf, size_t bufSize, size_t strSize) {
 }
 
 Block_t parse_Block(const uint8_t *buf, size_t bufSize) {
+    if (5 > bufSize) {
+        fprintf(stderr, "Error: Attempting to parse a Block_t, bytes out of range\n");
+    }
+
     return (Block_t) {
         buf[0],
         parse_uint32(buf, bufSize, 1)
+    };
+}
+
+// this assumes that the start of the buffer contains the start of
+// this particular character data block
+CharData_t parse_CharData(uint8_t *buf, size_t bufSize) {
+    if (bufSize < 20) {
+        fprintf(stderr, "Error: CharData buffer size mismatch, unable to parse CharData properly.\n");
+    }
+    // specification says each character is 4 bytes,
+    // assuming this is to support utf32, but we only need utf8
+    // so we can just cast directly to a char
+    char id = (char) parse_uint32(buf, bufSize, 0);
+    uint16_t x = parse_uint16(buf, bufSize, 4);
+    uint16_t y = parse_uint16(buf, bufSize, 6);
+    uint16_t w = parse_uint16(buf, bufSize, 8);
+    uint16_t h = parse_uint16(buf, bufSize, 10);
+    uint8_t channel = buf[19];
+
+    return (CharData_t) {
+        .character = id,
+        .x = x,
+        .y = y,
+        .width = w,
+        .height = h,
+        .channel = channel
     };
 }
 
@@ -89,7 +139,6 @@ int read_Header(uint8_t *buf, FILE *file, FontData_t *fontData) {
 
     return 1;
 }
-
 
 // reads the binary font data file as defined in:
 // https://www.angelcode.com/products/bmfont/doc/file_format.html#bin
@@ -135,19 +184,38 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     char texPath[128] = "assets/";
     strcat(texPath, texName);
     FILE *texFile = fopen(texPath, "rb");
+    
     if (!texFile) {
         fprintf(stderr, "Error: Unable to open texture file: %s\n", texPath);
+        return;
     }
+
     ImageData_t imgData = ImageData_fromFile(texFile);
     GLuint texId = ImageData_toTexture(&imgData);
     fontData->texture = texId;
     ImageData_freeImage(&imgData);
-    fclose(texFile);
+    fclose(texFile);    
 
-    // load char data from section 4
-    printf("GL tex id: %d\n", texId);
+    // load char data from block 4
+    read_bytes(buf, filePtr, 5);
+    Block_t block4 = parse_Block(buf, bufSize);
+    
+    // we know each unit of chardata is 20 bytes
+    // So we can find how many chars we have
+    size_t charCount = block4.size / 20;
+    fontData->charData = (CharData_t*) malloc(charCount * sizeof(CharData_t));
+
+    // read every char
+    for (int i = 0; i < charCount; i++) {
+        read_bytes(buf, filePtr, 20);
+        CharData_t charData = parse_CharData(buf, bufSize);
+        fontData->charData[i] = charData;
+    }
 
     fclose(filePtr);
+
+    printf("Loaded bitmap font: %s @ %s\n", fontData->fontName, texPath);
+
 }
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath) {
@@ -160,9 +228,21 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
     // Renderer_init(font->renderer, context, GL_STATIC_DRAW, );
 }
 
+void FontData_free(FontData_t *fontData) {
+    free(fontData->charData);
+    fontData->charData = NULL;
+
+    free(fontData->fontName);
+    fontData->fontName = NULL;
+
+    free(fontData);
+    fontData = NULL;
+}
+
 void FontRenderer_free(FontRenderer_t *font) {
     Renderer_free(font->renderer);    
-
+    FontData_free(font->fontData);
+    free(font);
 }
 
 

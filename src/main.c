@@ -26,15 +26,9 @@ uint32_t fps;
 int32_t cameraX = 0;
 int32_t cameraY = 0;
 
-Scene_t mainMenuScene = {
-    .init = MainMenu_init,
-    .tick = MainMenu_tick,
-    .render = MainMenu_render,
-    .exit = MainMenu_exit
-};
 
 // Our scene defaults to the main menu
-Scene_t *currentScene = &mainMenuScene;
+Scene_t *currentScene = &Scene_MainMenu;
 
 // skidded from stackoverflow, requires gnu lib sys/time.h
 int64_t DW_currentTimeMillis() {
@@ -138,8 +132,10 @@ void DW_initGame() {
 
 void DW_exitGame() {
     // Free up vram and heap
+    FontRenderer_free(fontRenderer);
     Renderer_free(dynRenderer);
     Context_free(context);
+    
     free(input);
     input = NULL;
 }

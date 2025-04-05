@@ -4,23 +4,22 @@
 #include "renderer.h"
 
 typedef struct CharData {
-    uint32_t x;
-    uint32_t y;
-
-    uint32_t width;
-    uint32_t height;
-
-    int32_t xAdvance;
-    uint32_t page;
-    
     char character;
+
+    uint16_t x;
+    uint16_t y;
+
+    uint16_t width;
+    uint16_t height;
+    
+    uint8_t channel;    
 } CharData_t;
 
 typedef struct FontData {
     size_t nameLen;
     char *fontName;
 
-    size_t dataLen;
+    size_t charCount;
     CharData_t *charData;
 
     // texture for our bitmap.

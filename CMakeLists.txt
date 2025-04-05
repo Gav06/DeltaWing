@@ -64,4 +64,4 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # Enable optimizations
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -g)
+target_compile_options(${PROJECT_NAME} PRIVATE -g)
