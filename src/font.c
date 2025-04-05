@@ -193,6 +193,9 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     ImageData_t imgData = ImageData_fromFile(texFile);
     GLuint texId = ImageData_toTexture(&imgData);
     fontData->texture = texId;
+    fontData->texWidth = imgData.width;
+    fontData->texHeight = imgData.height;
+    
     ImageData_freeImage(&imgData);
     fclose(texFile);    
 

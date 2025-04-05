@@ -37,9 +37,39 @@ typedef struct MatrixStack {
     int top;
 } MatrixStack_t;
 
+typedef enum VertexFormat {
+    VERTEX_FORMAT_P,
+    VERTEX_FORMAT_PC,
+    VERTEX_FORMAT_PT,
+    VERTEX_FORMAT_PCT
+} VertexFormat_e;
+
+// Vertex attributes
+typedef vec3 v_pos;
+typedef vec4 v_color;
+typedef vec2 v_uv;
+
+typedef v_pos Vertex_P;
+
+typedef struct {
+    v_pos pos;
+    v_color color;
+} Vertex_PC;
+
+typedef struct {
+    v_pos pos;
+    v_uv uv;
+} Vertex_PT;
+
+typedef struct {
+    v_pos pos;
+    v_color color;
+    v_uv uv;
+} Vertex_PCT;
+
 typedef struct Vertex {
-    vec3 pos;
-    vec4 color;
+    v_pos pos;
+    v_color color;
 } Vertex_t;
 
 typedef struct Context {
@@ -66,7 +96,7 @@ typedef struct Renderer {
     uint32_t vbo;
     
     uint32_t vertexCount;
-
+    // This is usually GL_TRIANGLES
     GLenum primitive;
 
     Context_t *context;
@@ -118,7 +148,7 @@ void Renderer_drawDynamic(Renderer_t *renderer);
 
 void Renderer_drawStatic(Renderer_t *renderer);
 
-void Renderer_drawStaticInterval(Renderer_t *renderer, uint32_t start, uint32_t amount);
+void Renderer_drawStaticInterval(Renderer_t *renderer, uint32_t start, uint32_t count);
 
 uint32_t Shader_createProgram(const char *vertexShader, const char *fragShader);
 
