@@ -43,6 +43,8 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
 
 void FontRenderer_free(FontRenderer_t *font);
 
+void FontRenderer_drawChar(FontRenderer_t *font, char character);
+
 void FontRenderer_drawString(FontRenderer_t *font, char *text);
 
 uint32_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text);

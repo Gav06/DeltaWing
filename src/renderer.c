@@ -7,6 +7,19 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+size_t VertexFormat_getSize(VertexFormat_e format) {
+    if (format < 0 || format >= VERTEX_FORMAT_TOTAL) {
+        fprintf(stderr, "Error: Attempted to get size of invalid vertex format.\n");
+        return 0;
+    }
+
+    switch (format) {
+    case VERTEX_FORMAT_PC: return sizeof(Vertex_PC);
+    case VERTEX_FORMAT_PT: return sizeof(Vertex_PT);
+    case VERTEX_FORMAT_PCT: return sizeof(Vertex_PCT);
+    }
+}
+
 ImageData_t ImageData_fromFile(FILE *file) {
     int width, height, channels;
     uint8_t *img = stbi_load_from_file(file, &width, &height, &channels, 0);
@@ -42,18 +55,18 @@ GLuint ImageData_toTexture(ImageData_t* imgData) {
 
     switch (imgData->channels)
     {
-        case 1:
-            format = GL_RED;
-            break;
-        case 3:
-            format = GL_RGB;
-            break;
-        case 4:
-            format = GL_RGBA;
-            break;
-        default:
-            fprintf(stderr, "Error: Unsupported number of texture channels: %d\n", imgData->channels);
-            break;
+    case 1:
+        format = GL_RED;
+        break;
+    case 3:
+        format = GL_RGB;
+        break;
+    case 4:
+        format = GL_RGBA;
+        break;
+    default:
+        fprintf(stderr, "Error: Unsupported number of texture channels: %d\n", imgData->channels);
+        break;
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, format, imgData->width, imgData->height, 0, format, GL_UNSIGNED_BYTE, imgData->image);
@@ -121,29 +134,6 @@ void MatrixStack_translate(MatrixStack_t *stack, vec3 vector) {
 void MatrixStack_rotate(MatrixStack_t *stack, float angle, vec3 axis) {
     glm_rotate(*MatrixStack_peek(stack), angle, axis);
 }
-
-const char *defaultVertShader =
-    "#version 460 core                              \n"
-    "layout (location = 0) in vec3 aPos;            \n"
-    "layout (location = 1) in vec4 aColor;          \n"
-    "out vec4 vertexColor;                          \n"
-    "flat out vec3 fragCoord;"
-    "layout (location = 0) uniform mat4 projection; \n"
-    "layout (location = 1) uniform mat4 model;  \n"
-    "void main() {                                  \n"
-    "   fragCoord = aPos;                           \n"
-    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
-    "   vertexColor = aColor;                       \n"
-    "}                                              \n";
-
-const char *defaultFragShader = 
-    "#version 460 core                              \n"
-    "in vec4 vertexColor;                           \n"
-    "in vec3 fragCoord;                             \n"
-    "out vec4 fragColor;                            \n"
-    "void main() {                                  \n"
-    "    fragColor = vertexColor;                   \n"
-    "}                                              \n";
 
 uint32_t Shader_createProgram(const char *vertShader, const char *fragShader) {
     uint32_t vs = glCreateShader(GL_VERTEX_SHADER);
@@ -225,6 +215,129 @@ void Shader_checkProgError(uint32_t program) {
     }
 }
 
+const char *Vert_PosColor =
+    "#version 460 core                                      \n"
+
+    "layout (location = 0) in vec3 aPos;                    \n"
+    "layout (location = 1) in vec4 aColor;                  \n"
+
+    "out vec4 vertexColor;                                  \n"
+    "out vec3 fragCoord;                                    \n"
+
+    "layout (location = 0) uniform mat4 projection;         \n"
+    "layout (location = 1) uniform mat4 model;              \n"
+    
+    "void main() {                                          \n"
+    "   fragCoord = aPos;                                   \n"
+    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
+    "   vertexColor = aColor;                               \n"
+    "}                                                      \n";
+
+const char *Frag_PosColor = 
+    "#version 460 core                              \n"
+    "in vec4 vertexColor;                           \n"
+    "in vec3 fragCoord;                             \n"
+    "out vec4 fragColor;                            \n"
+    "void main() {                                  \n"
+    "    fragColor = vertexColor;                   \n"
+    "}                                              \n";
+
+const char *Vert_PosTex =
+    "#version 460 core                                      \n"
+    "layout (location = 0) in vec3 aPos;                    \n"
+    "layout (location = 1) in vec2 aTex;                    \n"
+
+    "out vec2 uvCoord;                                      \n"
+    "out vec3 fragCoord;                                    \n"
+
+    "layout (location = 0) uniform mat4 projection;         \n"
+    "layout (location = 1) uniform mat4 model;              \n"
+    "void main() {                                          \n"
+    "   fragCoord = aPos;                                   \n"
+    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
+    "   uvCoord = aTex;                                     \n"
+    "}                                                      \n";
+
+const char *Frag_PosTex = 
+    "#version 460 core                              \n"
+    "in vec2 uvCoord;                               \n"
+    "in vec3 fragCoord;                             \n"
+
+    // current texture unit, default is 0
+    "layout (location = 2) uniform sampler2D textureIn;\n"
+
+    "out vec4 fragColor;                            \n"
+    
+    "void main() {                                  \n"
+    // "    fragColor = texture(textureIn, uvCoord); \n"
+    "   fragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+    "}                                              \n";
+
+const char *Vert_PosColorTex =
+    "#version 460 core                              \n"
+    "layout (location = 0) in vec3 aPos;            \n"
+    "layout (location = 1) in vec4 aColor;          \n"
+    "layout (location = 2) in vec2 aTex;            \n"
+
+    "out vec2 uvCoord;                              \n"
+    "out vec4 vertexColor;                          \n"
+    "out vec3 fragCoord;                            \n"
+
+    "layout (location = 0) uniform mat4 projection; \n"
+    "layout (location = 1) uniform mat4 model;      \n"
+    "void main() {                                  \n"
+    "   fragCoord = aPos;                           \n"
+    "   uvCoord = aTex;                             \n"
+    "   vertexColor = aColor;                       \n"
+    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
+    "}                                              \n";
+
+const char *Frag_PosColorTex = 
+    "#version 460 core                              \n"
+
+    "in vec2 uvCoord;                               \n"
+    "in vec4 vertexColor;                           \n"
+    "in vec3 fragCoord;                             \n"
+
+    // current texture unit, default is 0
+    "layout (location = 2) uniform sampler2D textureIn;\n"
+    "out vec4 fragColor;                            \n"
+    "void main() {                                  \n"
+    "    fragColor = texture(textureIn, uvCoord) * vertexColor; \n"
+    "}                                              \n";
+
+bool shadersCompiled = false;
+GLuint Shader_defaultShaderPrograms_m[VERTEX_FORMAT_TOTAL];
+
+void Shader_compileDefaultShaders() {
+    if (shadersCompiled) {
+        fprintf(stderr, "Error: Default shaders are already compiled.\n");
+        return;
+    }
+
+    // Compile our shaders for each vertex format
+    for (int i = 0; i < VERTEX_FORMAT_TOTAL; i++) {
+        GLuint prog;
+        switch (i)
+        {
+        case VERTEX_FORMAT_PC:
+            prog = Shader_createProgram(Vert_PosColor, Frag_PosColor);
+            break;
+        case VERTEX_FORMAT_PT:
+            prog = Shader_createProgram(Vert_PosTex, Frag_PosTex);
+            break;
+        case VERTEX_FORMAT_PCT:
+            prog = Shader_createProgram(Vert_PosColorTex, Frag_PosColorTex);
+            break;
+        default:
+            fprintf(stderr, "Error: Attempting to compile default shader for invalid vertex format.\n");
+            break;
+        }
+        Shader_defaultShaderPrograms_m[i] = prog;
+    }
+    
+}
+
 void Context_init(Context_t *c, uint32_t width, uint32_t height) {
     // default cam pos
     glm_vec3_zero(c->camPos);
@@ -251,103 +364,94 @@ void Context_free(Context_t *context) {
     context = NULL;
 }
 
-void Renderer_init(Renderer_t *r, Context_t *c, GLenum bufferUsage, Vertex_t *verticies) {
-    // our renderer will use the matricies from our render context
-    // in the vertex shader
-    r->context = c;
-    r->shader = Shader_createProgram(defaultVertShader, defaultFragShader);
-    r->vertexCount = 0;
-    r->primitive = GL_TRIANGLES;
+void Renderer_bind(Renderer_t *renderer) {
+    glBindVertexArray(renderer->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
+    glUseProgram(renderer->shader);
+}
 
-    glUseProgram(r->shader);
-    glUseProgram(0);
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, GLenum usage, size_t vertexCount, void *vertexBuffer) {
+    renderer->context = context;
+    renderer->shader = Shader_defaultShaderPrograms_m[format];
+    // default primitive is triangle strip as quads, but this will be
+    // replaced with an element buffer later on
+    renderer->primitive = GL_TRIANGLE_STRIP;
+    renderer->vertexSize = VertexFormat_getSize(format);
+    size_t bufferSize = vertexCount * renderer->vertexSize;
 
-    glGenVertexArrays(1, &r->vao);
-    glBindVertexArray(r->vao);
+    // Create vao and vbo
+    glGenVertexArrays(1, &renderer->vao);
+    glBindVertexArray(renderer->vao);
 
-    glGenBuffers(1, &r->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    // We use an orphaned buffer if not using static draw
-    if (bufferUsage != GL_STATIC_DRAW) {
-        r->vertexData = malloc(sizeof(Vertex_t) * MAX_VERTICIES);
-        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), NULL, bufferUsage);
+    glGenBuffers(1, &renderer->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
+
+    if (usage == GL_STATIC_DRAW) {
+        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertexBuffer, usage);
     } else {
-        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * sizeof(Vertex_t), verticies, bufferUsage);
+        // If usage is GL_STREAM_DRAW or GL_DYNAMIC_DRAW
+        // (vertex data will be supplied later, in a just-in-time or immediate fashion)
+        renderer->dynamicVertexBuffer = malloc(renderer->vertexSize * MAX_VERTICIES);
+        // data will be passed later with glBufferSubData
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * renderer->vertexSize, NULL, usage);
     }
 
-    // location 0, 3 elements, size float, normalized false, stride 7 of floats (xyz rgba)
+    // attribute 0 will always be the position, consisting of 3 floats
+    // across all of our vertex formats
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_t), (void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) 0);
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, sizeof(Vertex_t), (void*) offsetof(Vertex_t, color));
 
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    r->isBound = GL_FALSE;
-}
+    switch (format) {
+    case VERTEX_FORMAT_PC:
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, renderer->vertexSize, (void*) offsetof(Vertex_PC, color));
+        break;
+    case VERTEX_FORMAT_PT:
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) offsetof(Vertex_PT, uv));
+        break;
+    case VERTEX_FORMAT_PCT:
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, renderer->vertexSize, (void*) offsetof(Vertex_PCT, color));
 
-void Renderer_bind(Renderer_t *r) {
-    glBindVertexArray(r->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    r->isBound = GL_TRUE;
-}
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) offsetof(Vertex_PCT, uv));
 
-bool Renderer_checkBound(Renderer_t *r) {
-    if (!r->isBound) {
-        fprintf(stderr, "Error: Buffers of current Renderer are not bound!\n");
-        return true;
+        break;
     }
 
-    return false;
+    // setup some shader uniforms
+    glUseProgram(renderer->shader);
+    // set our projection matrix now because it doesn't change at the moment.
+    // our transformation matrix will be set every frame though.
+    glUniformMatrix4fv(0, 1, GL_FALSE, *renderer->context->projectionMatrix);
+    // use texture unit 0
+    glUniform1i(2, 0);
+    glUseProgram(0);
+
+
+    // Renderer is considered bound after initialization
 }
 
-void Renderer_free(Renderer_t *r) {
-    glDeleteBuffers(1, &r->vbo);
-    glDeleteVertexArrays(1, &r->vao);
-    glDeleteProgram(r->shader);
-    free(r);
-    r = NULL;
-}
+void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
+    glUniformMatrix4fv(1, 1, GL_FALSE, (const GLfloat*) MatrixStack_peek(renderer->context->matrixStack));
+    if (renderer->usage != GL_STATIC_DRAW) {
+        glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->vertexCount * renderer->vertexSize, renderer->dynamicVertexBuffer);
 
-void Renderer_addVertex(Renderer_t *r, Vertex_t v) {
-    if (Renderer_checkBound(r)) return;
-
-    if (r->vertexCount >= MAX_VERTICIES) {
-        fprintf(stderr, "Error: Vertex buffer full!\n");
-        return;
     }
 
-    r->vertexData[r->vertexCount] = v;
-    r->vertexCount++;
+    glDrawArrays(renderer->primitive, start, size);
 }
 
-void Renderer_beginDynamic(Renderer_t *r) {
-    if (Renderer_checkBound(r)) return;
-    // clear vertex data using memset (disabled)
-    // memset(r->vertexData, 0, r->vertexCount * sizeof(Vertex_t));
-    r->vertexCount = 0;
+void Renderer_draw(Renderer_t *renderer) {
+    Renderer_drawIndexed(renderer, 0, renderer->vertexCount);
 }
 
-void Renderer_drawDynamic(Renderer_t *r) {
-    // assuming this renderer is already bound and in-use
-    if (Renderer_checkBound(r)) return;
+void Renderer_free(Renderer_t *renderer) {
+    if (renderer->usage != GL_STATIC_DRAW) {
+        free(renderer->dynamicVertexBuffer);
+        renderer->dynamicVertexBuffer = NULL;
+    }
 
-    // use shader
-    glUseProgram(r->shader);
-    // pass matrix data
-    glUniformMatrix4fv(0, 1, GL_FALSE, *r->context->projectionMatrix);
-    glUniformMatrix4fv(1, 1, GL_FALSE, (const GLfloat*) MatrixStack_peek(r->context->matrixStack));
-    // pass vertex data to GPU
-    glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertexCount * sizeof(Vertex_t), r->vertexData);
-    // draw call
-    glDrawArrays(r->primitive, 0, r->vertexCount);
-}
-
-// start is inclusive, end is 
-void Renderer_drawStaticInterval(Renderer_t *r, uint32_t start, uint32_t amount) {
-    if (Renderer_checkBound(r)) return;
-}
-
-void Renderer_drawStatic(Renderer_t *r) {
+    free(renderer);    
+    renderer = NULL;
 }

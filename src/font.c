@@ -195,7 +195,7 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     fontData->texture = texId;
     fontData->texWidth = imgData.width;
     fontData->texHeight = imgData.height;
-    
+
     ImageData_freeImage(&imgData);
     fclose(texFile);    
 
@@ -206,6 +206,7 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     // we know each unit of chardata is 20 bytes
     // So we can find how many chars we have
     size_t charCount = block4.size / 20;
+    fontData->charCount = charCount;
     fontData->charData = (CharData_t*) malloc(charCount * sizeof(CharData_t));
 
     // read every char
@@ -218,7 +219,29 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     fclose(filePtr);
 
     printf("Loaded bitmap font: %s @ %s\n", fontData->fontName, texPath);
+}
 
+// Puts the verticies for a given char into the given vertex array
+void CharData_genVerticies(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
+    CharData_t *charData = &fontData->charData[charIndex];
+    int texWidth = fontData->texWidth;
+    int texHeight = fontData->texHeight;
+    if (index + 3 > bufLen) {
+        fprintf(stderr, "Error: Generating font verticies, buffer too small\n");
+        return;
+    }
+
+    // uv coords
+    float top = charData->y / texHeight;
+    float left = charData->x / texWidth;
+    float right = left + (charData->width / texWidth);
+    float bottom = top + (charData->height / texHeight);
+
+    // x, y, z, u, v
+    buffer[index] = (Vertex_PT) { 0.0f, 0.0f, 0.0f, top, left };
+    buffer[index + 1] = (Vertex_PT) { 0.0f, charData->height, 0.0f, bottom, left };
+    buffer[index + 2] = (Vertex_PT) { charData->width, 0.0f, 0.0f, top, right };
+    buffer[index + 3] = (Vertex_PT) { charData->width, charData->height, 0.0f, bottom, right };
 }
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath) {
@@ -228,7 +251,19 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
     FontRenderer_loadData(fontPath, font->fontData);
     // allocate and initialize a new static renderer
     font->renderer = (Renderer_t*) malloc(sizeof(Renderer_t));
-    // Renderer_init(font->renderer, context, GL_STATIC_DRAW, );
+    size_t vertexCount = font->fontData->charCount * 4;
+
+    // each "quad" for each char will have 4 verticies
+    Vertex_PT fontVerticies[vertexCount];
+
+    for (size_t i = 0; i < font->fontData->charCount; i++) {
+        // every 4 verticies
+        CharData_genVerticies(font->fontData, i, fontVerticies, vertexCount, i * 4);
+    }
+
+    Renderer_init(font->renderer, context, VERTEX_FORMAT_PT, GL_STATIC_DRAW, vertexCount, fontVerticies);
+    font->renderer->primitive = GL_TRIANGLE_STRIP;
+
 }
 
 void FontData_free(FontData_t *fontData) {
@@ -243,9 +278,16 @@ void FontData_free(FontData_t *fontData) {
 }
 
 void FontRenderer_free(FontRenderer_t *font) {
-    Renderer_free(font->renderer);    
+    // Renderer_free(font->renderer);    
     FontData_free(font->fontData);
     free(font);
+}
+
+void FontRenderer_drawChar(FontRenderer_t *font, char character) {
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, font->fontData->texture);
+    Renderer_drawIndexed(font->renderer, 4, 4);
 }
 
 

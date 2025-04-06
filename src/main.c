@@ -11,6 +11,9 @@
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
 
+#define DISPLAY_WIDTHF 1280.0f
+#define DISPLAY_HEIGHTF 720.0f
+
 #define TARGET_TPS 60
 #define MS_PER_TICK (1000 / TARGET_TPS)
 
@@ -110,16 +113,21 @@ void DW_setScene(Scene_t *scene) {
     }
 }
 
+Renderer_t *testRenderer;
+
 void DW_initGame() {
     // Setup our dynamic renderer & render context
+    Shader_compileDefaultShaders();
+
+
     context = malloc(sizeof(Context_t));
     Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    dynRenderer = malloc(sizeof(Renderer_t));
-    Renderer_init(dynRenderer, context, GL_DYNAMIC_DRAW, NULL);
+    // dynRenderer = malloc(sizeof(Renderer_t));
+    // Renderer_init(dynRenderer, context, GL_DYNAMIC_DRAW, NULL);
 
-    Renderer_bind(dynRenderer);
-    dynRenderer->primitive = GL_TRIANGLE_STRIP;
+    // Renderer_bind(dynRenderer);
+    // dynRenderer->primitive = GL_TRIANGLE_STRIP;
 
     fontRenderer = malloc(sizeof(FontRenderer_t));
     FontRenderer_init(fontRenderer, context, "assets/roboto_mono.fnt");
@@ -128,14 +136,26 @@ void DW_initGame() {
     input = calloc(1, sizeof(Input_t));
 
     if (currentScene != NULL) currentScene->init();
+    
+
+    testRenderer = malloc(sizeof(Renderer_t));
+
+    Vertex_PT verticies[] = {
+        0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, DISPLAY_HEIGHTF, 0.0f, 0.0f, 0.0f,
+        DISPLAY_WIDTHF, 0.0f, 0.0f, 1.0f, 1.0f,
+        DISPLAY_WIDTHF, DISPLAY_HEIGHTF, 0.0f, 1.0f, 0.0f
+    };
+    
+    Renderer_init(testRenderer, context, VERTEX_FORMAT_PT, GL_STATIC_DRAW, 4, verticies);
 }
 
 void DW_exitGame() {
     // Free up vram and heap
     FontRenderer_free(fontRenderer);
-    Renderer_free(dynRenderer);
+    // Renderer_free(dynRenderer);
     Context_free(context);
-    
+
     free(input);
     input = NULL;
 }
@@ -159,28 +179,13 @@ void DW_render(float partialTicks) {
         currentScene->render(dynRenderer, context);
     }
 
-    dynRenderer->primitive = GL_TRIANGLE_STRIP;
-
-    Renderer_beginDynamic(dynRenderer);
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { left, bottom, 0.0f },
-        { 1.0f, 1.0f, 0.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { left, top, 0.0f },
-        { 1.0f, 0.0f, 0.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { right, bottom, 0.0f },
-        { 0.0f, 0.0f, 1.0f }
-    });
-    Renderer_addVertex(dynRenderer, (Vertex_t) {
-        { right, top, 0.0f },
-        { 0.0f, 1.0f, 0.0f }
-    });
-    Renderer_drawDynamic(dynRenderer);
-
-    
+    // Renderer_bind(fontRenderer->renderer);
+    // FontRenderer_drawChar(fontRenderer, 'i');
+    // Renderer_bind(fontRenderer->renderer);
+    Renderer_bind(testRenderer);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture);
+    Renderer_draw(testRenderer);
 }
 
 int main(int argc, char **argv) {

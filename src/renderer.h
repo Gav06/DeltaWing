@@ -38,18 +38,20 @@ typedef struct MatrixStack {
 } MatrixStack_t;
 
 typedef enum VertexFormat {
-    VERTEX_FORMAT_P,
+    // pos, color
     VERTEX_FORMAT_PC,
+    // pos, tex
     VERTEX_FORMAT_PT,
-    VERTEX_FORMAT_PCT
+    // pos, color, tex
+    VERTEX_FORMAT_PCT,
+
+    VERTEX_FORMAT_TOTAL
 } VertexFormat_e;
 
 // Vertex attributes
 typedef vec3 v_pos;
 typedef vec4 v_color;
 typedef vec2 v_uv;
-
-typedef v_pos Vertex_P;
 
 typedef struct {
     v_pos pos;
@@ -67,10 +69,7 @@ typedef struct {
     v_uv uv;
 } Vertex_PCT;
 
-typedef struct Vertex {
-    v_pos pos;
-    v_color color;
-} Vertex_t;
+size_t VertexFormat_getSize(VertexFormat_e format);
 
 typedef struct Context {
     // delta time variable
@@ -85,22 +84,24 @@ typedef struct Context {
 } Context_t;
 
 /**
- * Dynamic renderer struct, used for moving objects and things that will have their 
- * vertex data re-uploaded every frame
+ * Renderer struct, supports dynamic and static rendering, as well
+ * as different vertex formats.
  */
 typedef struct Renderer {
-    GLboolean isBound;
+    // Either GL_STATIC_DRAW or GL_STREAM_DRAW
+    GLenum usage;
+    // This is usually GL_TRIANGLES
+    GLenum primitive;
 
     uint32_t shader;
     uint32_t vao;
     uint32_t vbo;
     
     uint32_t vertexCount;
-    // This is usually GL_TRIANGLES
-    GLenum primitive;
+    size_t vertexSize;
 
     Context_t *context;
-    Vertex_t *vertexData;
+    void *dynamicVertexBuffer;
 } Renderer_t;
 
 
@@ -133,27 +134,24 @@ void Context_init(Context_t *context, uint32_t width, uint32_t height);
 
 void Context_free(Context_t *context);
 
-// Note that verticies only needs to be specified for static draw
-void Renderer_init(Renderer_t *renderer, Context_t *context, GLenum bufferUsage, Vertex_t *verticies);
-
-void Renderer_bind(Renderer_t *renderer);
-
-void Renderer_free(Renderer_t *renderer);
-
-void Renderer_addVertex(Renderer_t *renderer, Vertex_t vertex);
-
-void Renderer_beginDynamic(Renderer_t *renderer);
-
-void Renderer_drawDynamic(Renderer_t *renderer);
-
-void Renderer_drawStatic(Renderer_t *renderer);
-
-void Renderer_drawStaticInterval(Renderer_t *renderer, uint32_t start, uint32_t count);
-
 uint32_t Shader_createProgram(const char *vertexShader, const char *fragShader);
 
 void Shader_checkSrcError(uint32_t shader);
 
 void Shader_checkProgError(uint32_t program);
+
+void Shader_compileDefaultShaders();
+
+bool Renderer_checkBound(Renderer_t *renderer);
+
+void Renderer_bind(Renderer_t *renderer);
+
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, GLenum usage, size_t bufferSize, void *vertexBuffer);
+
+void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size);
+
+void Renderer_draw(Renderer_t *renderer);
+
+void Renderer_free(Renderer_t *renderer);
 
 #endif
