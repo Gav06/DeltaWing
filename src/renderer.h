@@ -84,9 +84,11 @@ typedef struct Renderer {
     // This is usually GL_TRIANGLES
     GLenum primitive;
 
+    bool useIndexBuffer;
     GLuint shader;
     GLuint vao;
     GLuint vbo;
+    GLuint eab;
 
     GLint projectionLoc;
     GLint modelLoc;

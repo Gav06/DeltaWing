@@ -48,7 +48,7 @@ int64_t DW_currentTimeMillis() {
 #ifdef _WIN32
     #include <windows.h>
 #else
-         // usleep
+    #include <unistd.h>
 #endif
 
 void DW_sleepMillis(uint32_t ms) {
@@ -125,6 +125,8 @@ int DW_initWindow() {
     printf("Renderer: %s\n", renderer);
 
     glEnable(GL_DEBUG_OUTPUT);
+    // Disable all messages for the INFO and DEBUG severity levels
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
     glDebugMessageCallback((GLDEBUGPROC) DW_GLerrorCallback, 0);
 
     return 0;
@@ -142,10 +144,10 @@ void DW_setScene(Scene_t *scene) {
 
 Renderer_t *testRenderer;
 
-const float left = (DISPLAY_WIDTH / 2) - 200.0f;
-const float right = (DISPLAY_WIDTH / 2) + 200.0f;
-const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
-const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
+const float left = (DISPLAY_WIDTH / 2) - 256.0f;
+const float right = (DISPLAY_WIDTH / 2) + 256.0f;
+const float top = (DISPLAY_HEIGHT / 2) - 256.0f;
+const float bottom = (DISPLAY_HEIGHT / 2) + 256.0f;
 
 GLuint testTexture;
 
@@ -227,14 +229,14 @@ void DW_render(float partialTicks) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Renderer_bind(testRenderer);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture.texId);
-    // Renderer_draw(testRenderer);
+    Renderer_bind(testRenderer);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture.texId);
+    Renderer_draw(testRenderer);
 
 
     Renderer_bind(fontRenderer->renderer);
-    FontRenderer_drawChar(fontRenderer, 'Z');
+    FontRenderer_drawChar(fontRenderer, 'f');
 }
 
 int main(int argc, char **argv) {

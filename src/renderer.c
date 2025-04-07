@@ -339,12 +339,6 @@ void Context_free(Context_t *context) {
     context = NULL;
 }
 
-void Renderer_bind(Renderer_t *renderer) {
-    glBindVertexArray(renderer->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
-    glUseProgram(renderer->shader);
-}
-
 void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, GLenum usage, size_t vertexCount, void *vertexBuffer) {
     renderer->context = context;
     renderer->shader = Shader_defaultShaderPrograms_m[format];
@@ -415,6 +409,18 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     glUseProgram(0);
 }
 
+void Renderer_bind(Renderer_t *renderer) {
+    glBindVertexArray(renderer->vao);
+    
+    if (renderer->useIndexBuffer) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->eab);
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
+    }
+
+    glUseProgram(renderer->shader);
+}
+
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
 
     if (renderer->vertexFormat != VERTEX_FORMAT_PC) {
@@ -430,7 +436,11 @@ void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
         glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->vertexCount * renderer->vertexSize, renderer->dynamicVertexBuffer);
     }
 
-    glDrawArrays(renderer->primitive, start, size);
+    if (renderer->useIndexBuffer) {
+        glDrawElements(renderer->primitive, size, GL_UNSIGNED_INT, NULL);
+    } else {
+        glDrawArrays(renderer->primitive, start, size);
+    }
 }
 
 void Renderer_draw(Renderer_t *renderer) {
