@@ -20,58 +20,44 @@ size_t VertexFormat_getSize(VertexFormat_e format) {
     }
 }
 
-ImageData_t ImageData_fromFile(FILE *file) {
-    int width, height, channels;
-    uint8_t *img = stbi_load_from_file(file, &width, &height, &channels, 0);
-    if (img == NULL) {
-        fprintf(stderr, "Error: Loading image from file.\n");
-    }
-
-    return (ImageData_t) {
-        width,
-        height,
-        channels,
-        img
-    };
-}
-
-void ImageData_freeImage(ImageData_t* imageData) {
-    stbi_image_free(imageData->image);
-}
-
-GLuint ImageData_toTexture(ImageData_t* imgData) {
-    GLuint texId;
-
-    glGenTextures(1, &texId);
-    glBindTexture(GL_TEXTURE_2D, texId);
-
+Texture_t DW_loadTexture(char* texPath) {
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    GLenum format;
+    int width, height, channels;
 
-    switch (imgData->channels)
-    {
-    case 1:
-        format = GL_RED;
-        break;
-    case 3:
-        format = GL_RGB;
-        break;
-    case 4:
-        format = GL_RGBA;
-        break;
-    default:
-        fprintf(stderr, "Error: Unsupported number of texture channels: %d\n", imgData->channels);
-        break;
+    stbi_set_flip_vertically_on_load(true);
+    uint8_t *data = stbi_load(texPath, &width, &height, &channels, 0);
+
+    if (data) {
+        GLenum format = (channels == 3) ? GL_RGB : GL_RGBA;
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+    } else {
+        fprintf(stderr, "Error: Loading image with stbi_load failed: %s\n", texPath);
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, format, imgData->width, imgData->height, 0, format, GL_UNSIGNED_BYTE, imgData->image);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-    return texId;
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        fprintf(stderr, "Error: GL error while generating texture: %d\n", err);
+    }
+
+    return (Texture_t) {
+        .width = width,
+        .height = height,
+        .channels = channels,
+        .texId = texture
+    };
 }
 
 /* 
@@ -215,21 +201,18 @@ void Shader_checkProgError(uint32_t program) {
     }
 }
 
+// VertexFormat: Position, Color
 const char *Vert_PosColor =
     "#version 460 core                                      \n"
-
     "layout (location = 0) in vec3 aPos;                    \n"
     "layout (location = 1) in vec4 aColor;                  \n"
-
+    "uniform mat4 projection;         \n"
+    "uniform mat4 model;              \n"
     "out vec4 vertexColor;                                  \n"
     "out vec3 fragCoord;                                    \n"
-
-    "layout (location = 0) uniform mat4 projection;         \n"
-    "layout (location = 1) uniform mat4 model;              \n"
-    
     "void main() {                                          \n"
-    "   fragCoord = aPos;                                   \n"
     "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
+    "   fragCoord = aPos;                                   \n"
     "   vertexColor = aColor;                               \n"
     "}                                                      \n";
 
@@ -242,68 +225,59 @@ const char *Frag_PosColor =
     "    fragColor = vertexColor;                   \n"
     "}                                              \n";
 
+// VertexFormat: Position, Texture
 const char *Vert_PosTex =
     "#version 460 core                                      \n"
     "layout (location = 0) in vec3 aPos;                    \n"
     "layout (location = 1) in vec2 aTex;                    \n"
-
-    "out vec2 uvCoord;                                      \n"
+    "out vec2 texCoord;                                      \n"
     "out vec3 fragCoord;                                    \n"
-
-    "layout (location = 0) uniform mat4 projection;         \n"
-    "layout (location = 1) uniform mat4 model;              \n"
+    "uniform mat4 projection;                               \n"
+    "uniform mat4 model;                                    \n"
     "void main() {                                          \n"
-    "   fragCoord = aPos;                                   \n"
     "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
-    "   uvCoord = aTex;                                     \n"
+    "   fragCoord = aPos;                                   \n"
+    "   texCoord = aTex;                                     \n"
     "}                                                      \n";
 
 const char *Frag_PosTex = 
     "#version 460 core                              \n"
-    "in vec2 uvCoord;                               \n"
+    "in vec2 texCoord;                              \n"
     "in vec3 fragCoord;                             \n"
-
-    // current texture unit, default is 0
-    "layout (location = 2) uniform sampler2D textureIn;\n"
-
+    "uniform sampler2D textureIn;                   \n"
     "out vec4 fragColor;                            \n"
-    
     "void main() {                                  \n"
-    // "    fragColor = texture(textureIn, uvCoord); \n"
-    "   fragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+    "   vec4 texelColor = texture(textureIn, texCoord);\n"
+    "   fragColor = texelColor;                     \n"
     "}                                              \n";
 
+// VertexFormat: Position, Color, Texture
 const char *Vert_PosColorTex =
     "#version 460 core                              \n"
     "layout (location = 0) in vec3 aPos;            \n"
     "layout (location = 1) in vec4 aColor;          \n"
     "layout (location = 2) in vec2 aTex;            \n"
-
-    "out vec2 uvCoord;                              \n"
+    "uniform mat4 projection; \n"
+    "uniform mat4 model;      \n"
+    "out vec2 texCoord;                              \n"
     "out vec4 vertexColor;                          \n"
     "out vec3 fragCoord;                            \n"
-
-    "layout (location = 0) uniform mat4 projection; \n"
-    "layout (location = 1) uniform mat4 model;      \n"
     "void main() {                                  \n"
-    "   fragCoord = aPos;                           \n"
-    "   uvCoord = aTex;                             \n"
-    "   vertexColor = aColor;                       \n"
     "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
+    "   fragCoord = aPos;                           \n"
+    "   texCoord = aTex;                             \n"
+    "   vertexColor = aColor;                       \n"
     "}                                              \n";
 
 const char *Frag_PosColorTex = 
     "#version 460 core                              \n"
-
-    "in vec2 uvCoord;                               \n"
+    "in vec2 texCoord;                               \n"
     "in vec4 vertexColor;                           \n"
     "in vec3 fragCoord;                             \n"
-
-    // current texture unit, default is 0
-    "layout (location = 2) uniform sampler2D textureIn;\n"
+    "uniform sampler2D textureIn;\n"
     "out vec4 fragColor;                            \n"
     "void main() {                                  \n"
-    "    fragColor = texture(textureIn, uvCoord) * vertexColor; \n"
+    "   fragColor = texture(textureIn, texCoord) * vertexColor; \n"
     "}                                              \n";
 
 bool shadersCompiled = false;
@@ -344,16 +318,17 @@ void Context_init(Context_t *c, uint32_t width, uint32_t height) {
     // display dimensions
     c->displayWidth = width;
     c->displayHeight = height;
+    
     // Setup matricies & transformation matrix stack
+    glm_ortho(0.0f, (float) c->displayWidth, (float) c->displayHeight, 0.0f, -1.0f, 0.0f, c->projectionMatrix);
 
-    c->matrixStack = malloc(sizeof(MatrixStack_t));
-    MatrixStack_init(c->matrixStack);
     mat4 transform;
     glm_mat4_identity(transform);
-    // push our identity transformation
-    MatrixStack_push(c->matrixStack, transform);
     
-    glm_ortho(0.0f, (float) c->displayWidth, (float) c->displayHeight, 0.0f, -1.0f, 0.0f, c->projectionMatrix);
+    // push our identity transformation
+    c->matrixStack = malloc(sizeof(MatrixStack_t));
+    MatrixStack_init(c->matrixStack);
+    MatrixStack_push(c->matrixStack, transform);
 }
 
 void Context_free(Context_t *context) {
@@ -376,7 +351,11 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     // default primitive is triangle strip as quads, but this will be
     // replaced with an element buffer later on
     renderer->primitive = GL_TRIANGLE_STRIP;
+    renderer->vertexFormat = format;
     renderer->vertexSize = VertexFormat_getSize(format);
+    renderer->vertexCount = vertexCount;
+    renderer->usage = usage;
+
     size_t bufferSize = vertexCount * renderer->vertexSize;
 
     // Create vao and vbo
@@ -386,7 +365,7 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     glGenBuffers(1, &renderer->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
 
-    if (usage == GL_STATIC_DRAW) {
+    if (renderer->usage == GL_STATIC_DRAW) {
         glBufferData(GL_ARRAY_BUFFER, bufferSize, vertexBuffer, usage);
     } else {
         // If usage is GL_STREAM_DRAW or GL_DYNAMIC_DRAW
@@ -402,7 +381,6 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) 0);
 
     glEnableVertexAttribArray(1);
-
     switch (format) {
     case VERTEX_FORMAT_PC:
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, renderer->vertexSize, (void*) offsetof(Vertex_PC, color));
@@ -415,7 +393,9 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
 
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) offsetof(Vertex_PCT, uv));
-
+        break;
+    default:
+        fprintf(stderr, "Error: Attempted to create Renderer with unknown Vertex format.\n");
         break;
     }
 
@@ -423,20 +403,31 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     glUseProgram(renderer->shader);
     // set our projection matrix now because it doesn't change at the moment.
     // our transformation matrix will be set every frame though.
-    glUniformMatrix4fv(0, 1, GL_FALSE, *renderer->context->projectionMatrix);
-    // use texture unit 0
-    glUniform1i(2, 0);
+    // use texture unit 0 as default
+    renderer->projectionLoc = glGetUniformLocation(renderer->shader, "projection");
+    renderer->modelLoc = glGetUniformLocation(renderer->shader, "model");
+
+    // if we use a vertex format the has tex
+    if (format != VERTEX_FORMAT_PC) {
+        renderer->samplerLoc = glGetUniformLocation(renderer->shader, "textureIn");
+    }
+    
     glUseProgram(0);
-
-
-    // Renderer is considered bound after initialization
 }
 
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
-    glUniformMatrix4fv(1, 1, GL_FALSE, (const GLfloat*) MatrixStack_peek(renderer->context->matrixStack));
+
+    if (renderer->vertexFormat != VERTEX_FORMAT_PC) {
+        // int at;
+        // glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
+        glUniform1i(renderer->samplerLoc, 0);
+    }
+    
+    glUniformMatrix4fv(renderer->projectionLoc, 1, GL_FALSE, (float*) &renderer->context->projectionMatrix);
+    glUniformMatrix4fv(renderer->modelLoc, 1, GL_FALSE, (float*) MatrixStack_peek(renderer->context->matrixStack));
+
     if (renderer->usage != GL_STATIC_DRAW) {
         glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->vertexCount * renderer->vertexSize, renderer->dynamicVertexBuffer);
-
     }
 
     glDrawArrays(renderer->primitive, start, size);

@@ -14,18 +14,14 @@
 #define MAX_MATRIX_STACK_SIZE 127
 
 // Used for texture loading
-typedef struct ImageData {
-    int width;
-    int height;
-    int channels;
-    uint8_t *image;
-} ImageData_t;
+typedef struct Texture {
+    uint32_t width;
+    uint32_t height;
+    uint8_t channels;
+    GLuint texId;
+} Texture_t;
 
-ImageData_t ImageData_fromFile(FILE *file);
-
-void ImageData_freeImage(ImageData_t* imageData);
-
-GLuint ImageData_toTexture(ImageData_t* imageData);
+Texture_t DW_loadTexture(char* texPath);
 
 /**
  * A stack data structure for matricies
@@ -48,25 +44,20 @@ typedef enum VertexFormat {
     VERTEX_FORMAT_TOTAL
 } VertexFormat_e;
 
-// Vertex attributes
-typedef vec3 v_pos;
-typedef vec4 v_color;
-typedef vec2 v_uv;
-
 typedef struct {
-    v_pos pos;
-    v_color color;
+    vec3 pos;
+    vec4 color;
 } Vertex_PC;
 
 typedef struct {
-    v_pos pos;
-    v_uv uv;
+    vec3 pos;
+    vec2 uv;
 } Vertex_PT;
 
 typedef struct {
-    v_pos pos;
-    v_color color;
-    v_uv uv;
+    vec3 pos;
+    vec4 color;
+    vec2 uv;
 } Vertex_PCT;
 
 size_t VertexFormat_getSize(VertexFormat_e format);
@@ -93,12 +84,18 @@ typedef struct Renderer {
     // This is usually GL_TRIANGLES
     GLenum primitive;
 
-    uint32_t shader;
-    uint32_t vao;
-    uint32_t vbo;
+    GLuint shader;
+    GLuint vao;
+    GLuint vbo;
+
+    GLint projectionLoc;
+    GLint modelLoc;
+    GLint samplerLoc;
     
-    uint32_t vertexCount;
+    size_t vertexCount;
     size_t vertexSize;
+
+    VertexFormat_e vertexFormat;
 
     Context_t *context;
     void *dynamicVertexBuffer;

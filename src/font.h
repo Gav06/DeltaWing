@@ -16,13 +16,7 @@ typedef struct CharData {
 } CharData_t;
 
 typedef struct FontData {
-    // texture for our bitmap.
-    // while this font format supports multiple textures, we will only use 1
-    // for this implementation
-    GLuint texture;
-    
-    uint32_t texWidth;
-    uint32_t texHeight;
+    Texture_t texture;
 
     size_t nameLen;
     char *fontName;

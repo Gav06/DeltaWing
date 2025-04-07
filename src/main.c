@@ -14,7 +14,10 @@
 #define DISPLAY_WIDTHF 1280.0f
 #define DISPLAY_HEIGHTF 720.0f
 
-#define TARGET_TPS 60
+#define TARGET_FPS 60
+#define MS_PER_FRAME (1000 / TARGET_FPS)
+
+#define TARGET_TPS 30
 #define MS_PER_TICK (1000 / TARGET_TPS)
 
 GLFWwindow *window;
@@ -42,8 +45,26 @@ int64_t DW_currentTimeMillis() {
   return s1 + s2;
 }
 
-void DW_errorCallback(int error, const char *description) {
+#ifdef _WIN32
+    #include <windows.h>
+#else
+         // usleep
+#endif
+
+void DW_sleepMillis(uint32_t ms) {
+#ifdef _WIN32
+    Sleep(ms); // Sleep takes milliseconds
+#else
+    usleep(ms * 1000); // usleep takes microseconds
+#endif
+}
+
+void DW_GLFWerrorCallback(int error, const char *description) {
     fprintf(stderr, "Error: %d %s\n", error, description);
+}
+
+void DW_GLerrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam) {
+    fprintf(stderr, "GL ERROR: %s\n", message);
 }
 
 void DW_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -75,13 +96,14 @@ int DW_initWindow() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);  
 
     window = glfwCreateWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT, "DeltaWing", NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
     // setup callbacks
-    glfwSetErrorCallback(DW_errorCallback);
+    glfwSetErrorCallback(DW_GLFWerrorCallback);
     glfwSetKeyCallback(window, DW_keyCallback);
     glfwSetMouseButtonCallback(window, DW_mouseButtonCallback);
     glfwSetCursorPosCallback(window, DW_cursorPosCallback);
@@ -98,7 +120,12 @@ int DW_initWindow() {
     }
 
     const char *version = glGetString(GL_VERSION);
-    printf("OpenGL %s\n", version);
+    const char *renderer = glGetString(GL_RENDERER);
+    printf("OpenGL: %s\n", version);
+    printf("Renderer: %s\n", renderer);
+
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback((GLDEBUGPROC) DW_GLerrorCallback, 0);
 
     return 0;
 }
@@ -115,39 +142,61 @@ void DW_setScene(Scene_t *scene) {
 
 Renderer_t *testRenderer;
 
+const float left = (DISPLAY_WIDTH / 2) - 200.0f;
+const float right = (DISPLAY_WIDTH / 2) + 200.0f;
+const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
+const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
+
+GLuint testTexture;
+
 void DW_initGame() {
-    // Setup our dynamic renderer & render context
+    // Compile shaders for all of our vertex formats
     Shader_compileDefaultShaders();
 
-
+    // init render context
     context = malloc(sizeof(Context_t));
     Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-
-    // dynRenderer = malloc(sizeof(Renderer_t));
-    // Renderer_init(dynRenderer, context, GL_DYNAMIC_DRAW, NULL);
-
-    // Renderer_bind(dynRenderer);
-    // dynRenderer->primitive = GL_TRIANGLE_STRIP;
-
+    // create font renderer
     fontRenderer = malloc(sizeof(FontRenderer_t));
     FontRenderer_init(fontRenderer, context, "assets/roboto_mono.fnt");
 
-    // Initialize with zeroes
+    // Create keyboard input struct, with zeroes (false as default key states)
     input = calloc(1, sizeof(Input_t));
 
+    // Init default scene
     if (currentScene != NULL) currentScene->init();
     
+
+    glGenTextures(1, &testTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, testTexture);
+    unsigned char data[] = {255, 128, 255, 255}; // 1x1 red pixel
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     testRenderer = malloc(sizeof(Renderer_t));
 
     Vertex_PT verticies[] = {
-        0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, DISPLAY_HEIGHTF, 0.0f, 0.0f, 0.0f,
-        DISPLAY_WIDTHF, 0.0f, 0.0f, 1.0f, 1.0f,
-        DISPLAY_WIDTHF, DISPLAY_HEIGHTF, 0.0f, 1.0f, 0.0f
+        (Vertex_PT) { left, top, 0.0f, 0.0f, 1.0f },
+        (Vertex_PT) { left, bottom, 0.0f, 0.0f, 0.0f },
+        (Vertex_PT) { right, top, 0.0f, 1.0f, 1.0f },
+        (Vertex_PT) { right, bottom, 0.0f, 1.0f, 0.0f }
     };
     
-    Renderer_init(testRenderer, context, VERTEX_FORMAT_PT, GL_STATIC_DRAW, 4, verticies);
+    Renderer_init(
+        testRenderer, 
+        context, 
+        VERTEX_FORMAT_PT, 
+        GL_STATIC_DRAW, 
+        4, 
+        verticies
+    );
+
 }
 
 void DW_exitGame() {
@@ -160,11 +209,6 @@ void DW_exitGame() {
     input = NULL;
 }
 
-const float left = (DISPLAY_WIDTH / 2) - 200.0f;
-const float right = (DISPLAY_WIDTH / 2) + 200.0f;
-const float top = (DISPLAY_HEIGHT / 2) - 200.0f;
-const float bottom = (DISPLAY_HEIGHT / 2) + 200.0f;
-
 void DW_tick() {
     if (currentScene != NULL) {
         currentScene->tick();
@@ -173,19 +217,24 @@ void DW_tick() {
 
 void DW_render(float partialTicks) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
     // draw current scene
     if (currentScene != NULL) {
         currentScene->render(dynRenderer, context);
     }
 
-    // Renderer_bind(fontRenderer->renderer);
-    // FontRenderer_drawChar(fontRenderer, 'i');
-    // Renderer_bind(fontRenderer->renderer);
-    Renderer_bind(testRenderer);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture);
-    Renderer_draw(testRenderer);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Renderer_bind(testRenderer);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture.texId);
+    // Renderer_draw(testRenderer);
+
+
+    Renderer_bind(fontRenderer->renderer);
+    FontRenderer_drawChar(fontRenderer, 'Z');
 }
 
 int main(int argc, char **argv) {
@@ -195,7 +244,7 @@ int main(int argc, char **argv) {
     DW_initGame();
 
     glfwShowWindow(window);
-    glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     uint64_t lastTime = DW_currentTimeMillis();
     uint64_t accumulator = 0;
@@ -226,6 +275,13 @@ int main(int argc, char **argv) {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        // limit fps
+        uint64_t frameEnd = DW_currentTimeMillis();
+        uint64_t frameDuration = frameEnd - frameStart;
+        if (frameDuration < MS_PER_FRAME) {
+            DW_sleepMillis(MS_PER_FRAME - frameDuration);
+        }
     }
 
     // This must be called before destroying our context because

@@ -98,8 +98,11 @@ CharData_t parse_CharData(uint8_t *buf, size_t bufSize) {
     // assuming this is to support utf32, but we only need utf8
     // so we can just cast directly to a char
     char id = (char) parse_uint32(buf, bufSize, 0);
+
+    // x and y are in top-left
     uint16_t x = parse_uint16(buf, bufSize, 4);
     uint16_t y = parse_uint16(buf, bufSize, 6);
+
     uint16_t w = parse_uint16(buf, bufSize, 8);
     uint16_t h = parse_uint16(buf, bufSize, 10);
     uint8_t channel = buf[19];
@@ -183,21 +186,8 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     // open file and parse image using stb_image.h
     char texPath[128] = "assets/";
     strcat(texPath, texName);
-    FILE *texFile = fopen(texPath, "rb");
-    
-    if (!texFile) {
-        fprintf(stderr, "Error: Unable to open texture file: %s\n", texPath);
-        return;
-    }
 
-    ImageData_t imgData = ImageData_fromFile(texFile);
-    GLuint texId = ImageData_toTexture(&imgData);
-    fontData->texture = texId;
-    fontData->texWidth = imgData.width;
-    fontData->texHeight = imgData.height;
-
-    ImageData_freeImage(&imgData);
-    fclose(texFile);    
+    fontData->texture = DW_loadTexture(texPath);
 
     // load char data from block 4
     read_bytes(buf, filePtr, 5);
@@ -224,24 +214,30 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
 // Puts the verticies for a given char into the given vertex array
 void CharData_genVerticies(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
     CharData_t *charData = &fontData->charData[charIndex];
-    int texWidth = fontData->texWidth;
-    int texHeight = fontData->texHeight;
+    float texW = (float) fontData->texture.width;
+    float texH = (float) fontData->texture.height;
     if (index + 3 > bufLen) {
         fprintf(stderr, "Error: Generating font verticies, buffer too small\n");
         return;
     }
 
-    // uv coords
-    float top = charData->y / texHeight;
-    float left = charData->x / texWidth;
-    float right = left + (charData->width / texWidth);
-    float bottom = top + (charData->height / texHeight);
+    
+    float texLeft = (charData->x) / texW;
+    float texRight = (charData->x + charData->width) / texW;
 
-    // x, y, z, u, v
-    buffer[index] = (Vertex_PT) { 0.0f, 0.0f, 0.0f, top, left };
-    buffer[index + 1] = (Vertex_PT) { 0.0f, charData->height, 0.0f, bottom, left };
-    buffer[index + 2] = (Vertex_PT) { charData->width, 0.0f, 0.0f, top, right };
-    buffer[index + 3] = (Vertex_PT) { charData->width, charData->height, 0.0f, bottom, right };
+    // top in uv coords is 1.0
+    float texTop = 1.0f - (charData->y / texH);
+    float texBottom = 1.0f - ((charData->y + charData->height) / texH);
+    
+    
+    // top left vertex
+    buffer[index] = (Vertex_PT) { 0.0f, 0.0f, 0.0f,                             texLeft, texTop };
+    // bottom left vertex
+    buffer[index + 1] = (Vertex_PT) { 0.0f, charData->height, 0.0f,             texLeft, texBottom };
+    // top right vertex
+    buffer[index + 2] = (Vertex_PT) { charData->width, 0.0f, 0.0f,              texRight, texTop };
+    // bottom right vertex
+    buffer[index + 3] = (Vertex_PT) { charData->width, charData->height, 0.0f,  texRight, texBottom };
 }
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath) {
@@ -284,10 +280,10 @@ void FontRenderer_free(FontRenderer_t *font) {
 }
 
 void FontRenderer_drawChar(FontRenderer_t *font, char character) {
-    glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, font->fontData->texture);
-    Renderer_drawIndexed(font->renderer, 4, 4);
+    glBindTexture(GL_TEXTURE_2D, font->fontData->texture.texId);
+
+    Renderer_drawIndexed(font->renderer, (character - 32) * 4, 4);
 }
 
 
