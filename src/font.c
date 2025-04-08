@@ -212,7 +212,7 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
 }
 
 // Puts the verticies for a given char into the given vertex array
-void CharData_genVerticies(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
+void CharData_genUV(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
     CharData_t *charData = &fontData->charData[charIndex];
     float texW = (float) fontData->texture.width;
     float texH = (float) fontData->texture.height;
@@ -253,11 +253,22 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
 
     for (size_t i = 0; i < font->fontData->charCount; i++) {
         // every 4 verticies
-        CharData_genVerticies(font->fontData, i, fontVerticies, vertexCount, i * 4);
+        CharData_genUV(font->fontData, i, fontVerticies, vertexCount, i * 4);
     }
 
-    glGenBuffers(1, &font->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, font->vbo);
+    VertexBuffer_t vb;
+    VertexBuffer_init(&vb, VERTEX_FORMAT_PT, vertexCount, sizeof(fontVerticies), fontVerticies);
+
+    // we are basically only drawing 2 triangles as a single quad
+    uint32_t indicies[] = {
+        0, 1, 2, 0, 2, 3
+    };
+
+    IndexBuffer_t ib;
+    IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
+
+    glGenVertexArrays(1, &font->vao);
+    glBindVertexArray(font->vao);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PT), (void*) 0);
@@ -268,7 +279,10 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
 }
 
 void FontRenderer_bind(FontRenderer_t *font) {
-
+    glUseProgram(font->shader);
+    glBindVertexArray(font->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, font->vb.vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, font->ib.ibo);
 }
 
 void FontData_free(FontData_t *fontData) {

@@ -260,10 +260,6 @@ void Context_free(Context_t *context) {
     context = NULL;
 }
 
-void IndexBuffer_bind(IndexBuffer_t *ib) {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib->ibo);
-}
-
 void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t bufferSize, uint32_t *indexBuffer) {
     ib->indexCount = indexCount;
     ib->indexData = indexBuffer;
@@ -273,8 +269,8 @@ void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t bufferSize, u
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize, indexBuffer, GL_STATIC_DRAW);
 }
 
-void VertexBuffer_bind(VertexBuffer_t *vb) {
-    glBindBuffer(GL_ARRAY_BUFFER, vb->vbo);
+void IndexBuffer_free(IndexBuffer_t *ib) {
+    glDeleteBuffers(1, &ib->ibo);
 }
 
 void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t vertexCount, size_t bufferSize, void *vertexData) {
@@ -286,6 +282,10 @@ void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t v
     glGenBuffers(1, &vb->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vb->vbo);
     glBufferData(GL_ARRAY_BUFFER, vb->bufferSize, vertexData, GL_STATIC_DRAW);
+}
+
+void VertexBuffer_free(VertexBuffer_t *vb) {
+    glDeleteBuffers(1, &vb->vbo);
 }
 
 // This is assuming the VBO and IBO have already been initialized and had data passed to them.
@@ -332,14 +332,12 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, 
     } else {
         renderer->samplerLoc = -1;
     }
-
-    printf("uniform proj %d model %d sampler %d\n", renderer->projectionLoc, renderer->modelLoc, renderer->samplerLoc);
 }
 
 void Renderer_bind(Renderer_t *renderer) {
     glBindVertexArray(renderer->vao);
-    VertexBuffer_bind(&renderer->vb);
-    IndexBuffer_bind(&renderer->ib);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vb.vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ib.ibo);
     glUseProgram(renderer->shader);
 }
 
@@ -358,6 +356,8 @@ void Renderer_draw(Renderer_t *renderer) {
 }
 
 void Renderer_free(Renderer_t *renderer) {
+    IndexBuffer_free(&renderer->ib);
+    VertexBuffer_free(&renderer->vb);
     free(renderer);
     renderer = NULL;
 }

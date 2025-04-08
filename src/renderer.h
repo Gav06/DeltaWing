@@ -151,13 +151,13 @@ void Shader_checkProgError(uint32_t program);
 
 void Shader_compileDefaultShaders();
 
-void IndexBuffer_bind(IndexBuffer_t *ib);
-
 void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t dataSize, uint32_t *indexData);
 
-void VertexBuffer_bind(VertexBuffer_t *vb);
+void IndexBuffer_free(IndexBuffer_t *ib);
 
 void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t vertexCount, size_t bufferSize, void *vertexData);
+
+void VertexBuffer_free(VertexBuffer_t *vb);
 
 bool Renderer_checkBound(Renderer_t *renderer);
 

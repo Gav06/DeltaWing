@@ -37,8 +37,9 @@ typedef struct FontRenderer {
 
     // renderer variables
     GLuint vao;
-    GLuint vbo;
-    GLuint instanceShader;
+    VertexBuffer_t vb;
+    IndexBuffer_t ib;
+    GLuint shader;
 } FontRenderer_t;
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath);

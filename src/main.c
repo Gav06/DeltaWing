@@ -152,11 +152,11 @@ void DW_initGame() {
 
     testRenderer = malloc(sizeof(Renderer_t));
 
-    Vertex_PC verticies[] = {
-        (Vertex_PC) { left, bottom, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f },
-        (Vertex_PC) { left, top, 0.0f,      0.0f, 1.0f, 0.0f, 1.0f },
-        (Vertex_PC) { right, top, 0.0f,     0.0f, 0.0f, 1.0f, 1.0f },
-        (Vertex_PC) { right, bottom, 0.0f,  1.0f, 1.0f, 0.0f, 1.0f }
+    Vertex_PT verticies[] = {
+        { left, bottom, 0.0f,   0.0f, 0.0f },
+        { left, top, 0.0f,      0.0f, 1.0f },
+        { right, top, 0.0f,     1.0f, 1.0f },
+        { right, bottom, 0.0f,  1.0f, 0.0f }
     };
 
     uint32_t indicies[] = {
@@ -164,7 +164,7 @@ void DW_initGame() {
     };
 
     VertexBuffer_t vb;
-    VertexBuffer_init(&vb, VERTEX_FORMAT_PC, sizeof(verticies) / sizeof(Vertex_PC), sizeof(verticies), verticies);
+    VertexBuffer_init(&vb, VERTEX_FORMAT_PT, sizeof(verticies) / sizeof(Vertex_PT), sizeof(verticies), verticies);
     IndexBuffer_t ib;
     IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
 
@@ -197,6 +197,7 @@ void DW_render(float partialTicks) {
 
 
     Renderer_bind(testRenderer);
+    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture.texId);
     Renderer_draw(testRenderer);
     // FontRenderer_drawChar(fontRenderer, '\n');
 }
