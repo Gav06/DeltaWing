@@ -25,15 +25,25 @@ typedef struct FontData {
     CharData_t *charData;
 } FontData_t;
 
+// This is a different type of renderer,
+// unlike Renderer_t, we will use instancing to
+// draw chars for better performance, since our data will
+// never change, just the positions and uvs being drawn
 typedef struct FontRenderer {
-    // null terminated
+    // null terminated string
     char *fontPath;
     FontData_t *fontData;
-    Renderer_t *renderer;
     Context_t *context;
+
+    // renderer variables
+    GLuint vao;
+    GLuint vbo;
+    GLuint instanceShader;
 } FontRenderer_t;
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath);
+
+void FontRenderer_bind(FontRenderer_t *font);
 
 void FontRenderer_free(FontRenderer_t *font);
 

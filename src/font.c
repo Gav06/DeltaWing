@@ -246,7 +246,6 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
     font->fontData = (FontData_t*) malloc(sizeof(FontData_t));
     FontRenderer_loadData(fontPath, font->fontData);
     // allocate and initialize a new static renderer
-    font->renderer = (Renderer_t*) malloc(sizeof(Renderer_t));
     size_t vertexCount = font->fontData->charCount * 4;
 
     // each "quad" for each char will have 4 verticies
@@ -257,8 +256,18 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
         CharData_genVerticies(font->fontData, i, fontVerticies, vertexCount, i * 4);
     }
 
-    Renderer_init(font->renderer, context, VERTEX_FORMAT_PT, GL_STATIC_DRAW, vertexCount, fontVerticies);
-    font->renderer->primitive = GL_TRIANGLE_STRIP;
+    glGenBuffers(1, &font->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, font->vbo);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PT), (void*) 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PT), (void*) offsetof(Vertex_PT, uv));
+
+
+}
+
+void FontRenderer_bind(FontRenderer_t *font) {
 
 }
 
@@ -286,8 +295,8 @@ void FontRenderer_drawChar(FontRenderer_t *font, char character) {
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font->fontData->texture.texId);
-
-    Renderer_drawIndexed(font->renderer, (character - 32) * 4, 4);
+    // Renderer_bind(font->renderer);
+    // Renderer_drawIndexed(font->renderer, (character - 32) * 4, 4);
 }
 
 

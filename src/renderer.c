@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "renderer.h"
+#include "util.h"
 
 // our image loading library
 #define STB_IMAGE_IMPLEMENTATION
@@ -201,85 +202,6 @@ void Shader_checkProgError(uint32_t program) {
     }
 }
 
-// VertexFormat: Position, Color
-const char *Vert_PosColor =
-    "#version 460 core                                      \n"
-    "layout (location = 0) in vec3 aPos;                    \n"
-    "layout (location = 1) in vec4 aColor;                  \n"
-    "uniform mat4 projection;         \n"
-    "uniform mat4 model;              \n"
-    "out vec4 vertexColor;                                  \n"
-    "out vec3 fragCoord;                                    \n"
-    "void main() {                                          \n"
-    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
-    "   fragCoord = aPos;                                   \n"
-    "   vertexColor = aColor;                               \n"
-    "}                                                      \n";
-
-const char *Frag_PosColor = 
-    "#version 460 core                              \n"
-    "in vec4 vertexColor;                           \n"
-    "in vec3 fragCoord;                             \n"
-    "out vec4 fragColor;                            \n"
-    "void main() {                                  \n"
-    "    fragColor = vertexColor;                   \n"
-    "}                                              \n";
-
-// VertexFormat: Position, Texture
-const char *Vert_PosTex =
-    "#version 460 core                                      \n"
-    "layout (location = 0) in vec3 aPos;                    \n"
-    "layout (location = 1) in vec2 aTex;                    \n"
-    "out vec2 texCoord;                                      \n"
-    "out vec3 fragCoord;                                    \n"
-    "uniform mat4 projection;                               \n"
-    "uniform mat4 model;                                    \n"
-    "void main() {                                          \n"
-    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
-    "   fragCoord = aPos;                                   \n"
-    "   texCoord = aTex;                                     \n"
-    "}                                                      \n";
-
-const char *Frag_PosTex = 
-    "#version 460 core                              \n"
-    "in vec2 texCoord;                              \n"
-    "in vec3 fragCoord;                             \n"
-    "uniform sampler2D textureIn;                   \n"
-    "out vec4 fragColor;                            \n"
-    "void main() {                                  \n"
-    "   vec4 texelColor = texture(textureIn, texCoord);\n"
-    "   fragColor = texelColor;                     \n"
-    "}                                              \n";
-
-// VertexFormat: Position, Color, Texture
-const char *Vert_PosColorTex =
-    "#version 460 core                              \n"
-    "layout (location = 0) in vec3 aPos;            \n"
-    "layout (location = 1) in vec4 aColor;          \n"
-    "layout (location = 2) in vec2 aTex;            \n"
-    "uniform mat4 projection; \n"
-    "uniform mat4 model;      \n"
-    "out vec2 texCoord;                              \n"
-    "out vec4 vertexColor;                          \n"
-    "out vec3 fragCoord;                            \n"
-    "void main() {                                  \n"
-    "   gl_Position = projection * model * vec4(aPos, 1.0); \n"
-    "   fragCoord = aPos;                           \n"
-    "   texCoord = aTex;                             \n"
-    "   vertexColor = aColor;                       \n"
-    "}                                              \n";
-
-const char *Frag_PosColorTex = 
-    "#version 460 core                              \n"
-    "in vec2 texCoord;                               \n"
-    "in vec4 vertexColor;                           \n"
-    "in vec3 fragCoord;                             \n"
-    "uniform sampler2D textureIn;\n"
-    "out vec4 fragColor;                            \n"
-    "void main() {                                  \n"
-    "   fragColor = texture(textureIn, texCoord) * vertexColor; \n"
-    "}                                              \n";
-
 bool shadersCompiled = false;
 GLuint Shader_defaultShaderPrograms_m[VERTEX_FORMAT_TOTAL];
 
@@ -295,13 +217,13 @@ void Shader_compileDefaultShaders() {
         switch (i)
         {
         case VERTEX_FORMAT_PC:
-            prog = Shader_createProgram(Vert_PosColor, Frag_PosColor);
+            prog = Shader_createProgram(DW_loadSourceFile("assets/pc.vert"), DW_loadSourceFile("assets/pc.frag"));
             break;
         case VERTEX_FORMAT_PT:
-            prog = Shader_createProgram(Vert_PosTex, Frag_PosTex);
+            prog = Shader_createProgram(DW_loadSourceFile("assets/pt.vert"), DW_loadSourceFile("assets/pt.frag"));
             break;
         case VERTEX_FORMAT_PCT:
-            prog = Shader_createProgram(Vert_PosColorTex, Frag_PosColorTex);
+            prog = Shader_createProgram(DW_loadSourceFile("assets/pct.vert"), DW_loadSourceFile("assets/pct.frag"));
             break;
         default:
             fprintf(stderr, "Error: Attempting to compile default shader for invalid vertex format.\n");
@@ -412,11 +334,11 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
 void Renderer_bind(Renderer_t *renderer) {
     glBindVertexArray(renderer->vao);
     
-    if (renderer->useIndexBuffer) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
-    } else {
+    // if (renderer->useIndexBuffer) {
+        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    // } else {
         glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
-    }
+    // }
 
     glUseProgram(renderer->shader);
 }
@@ -436,11 +358,11 @@ void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
         glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->vertexCount * renderer->vertexSize, renderer->dynamicVertexBuffer);
     }
 
-    if (renderer->useIndexBuffer) {
-        glDrawElements(renderer->primitive, size, GL_UNSIGNED_INT, NULL);
-    } else {
+    // if (renderer->useIndexBuffer) {
+        // glDrawElements(renderer->primitive, size, GL_UNSIGNED_INT, NULL);
+    // } else {
         glDrawArrays(renderer->primitive, start, size);
-    }
+    // }
 }
 
 void Renderer_draw(Renderer_t *renderer) {

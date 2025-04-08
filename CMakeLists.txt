@@ -36,6 +36,8 @@ set( SOURCES
 	"src/renderer.h"
 	"src/scenes.h"
 	"src/stb_image.h"
+	"src/util.h"
+	"src/util.c"
 	"src/scenes/mainmenu.h"
 )
 add_executable(${PROJECT_NAME} ${SOURCES})

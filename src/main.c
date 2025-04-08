@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include "renderer.h"
 #include "engine.h"
 #include "input.h"
 #include "scenes.h"
 #include "font.h"
+#include "util.h"
 
 #define DISPLAY_WIDTH 1280
 #define DISPLAY_HEIGHT 720
@@ -36,28 +36,6 @@ int32_t cameraY = 0;
 // Our scene defaults to the main menu
 Scene_t *currentScene = &Scene_MainMenu;
 
-// skidded from stackoverflow, requires gnu lib sys/time.h
-int64_t DW_currentTimeMillis() {
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  int64_t s1 = (int64_t)(time.tv_sec) * 1000;
-  int64_t s2 = (time.tv_usec / 1000);
-  return s1 + s2;
-}
-
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #include <unistd.h>
-#endif
-
-void DW_sleepMillis(uint32_t ms) {
-#ifdef _WIN32
-    Sleep(ms); // Sleep takes milliseconds
-#else
-    usleep(ms * 1000); // usleep takes microseconds
-#endif
-}
 
 void DW_GLFWerrorCallback(int error, const char *description) {
     fprintf(stderr, "Error: %d %s\n", error, description);
@@ -200,7 +178,7 @@ void DW_render(float partialTicks) {
     }
 
 
-    Renderer_bind(fontRenderer->renderer);
+    // Renderer_bind(fontRenderer->renderer);
     FontRenderer_drawChar(fontRenderer, '\n');
 }
 
