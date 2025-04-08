@@ -60,7 +60,27 @@ typedef struct {
     vec2 uv;
 } Vertex_PCT;
 
-size_t VertexFormat_getSize(VertexFormat_e format);
+size_t VertexFormat_sizeOf(VertexFormat_e format);
+
+typedef struct VertexBuffer {
+    // vertex buffer object
+    GLuint vbo;
+    // format
+    VertexFormat_e format;
+    // sizeof whichever vertex format we decide to go with
+    size_t vertexSize;
+    // number of defined verticies in our buffer
+    size_t vertexCount;
+    // The maximum amount of verticies that can be held in the allocated buffer
+    size_t bufferSize;
+} VertexBuffer_t;
+
+typedef struct IndexBuffer {
+    // element buffer object
+    GLuint ibo;
+    size_t indexCount;
+    uint32_t *indexData;
+} IndexBuffer_t;
 
 typedef struct Context {
     // delta time variable
@@ -79,28 +99,18 @@ typedef struct Context {
  * as different vertex formats.
  */
 typedef struct Renderer {
-    // Either GL_STATIC_DRAW or GL_STREAM_DRAW
-    GLenum usage;
     // This is usually GL_TRIANGLES
     GLenum primitive;
-
     GLuint shader;
+
+    VertexBuffer_t vb;
+    IndexBuffer_t ib;
     GLuint vao;
-    GLuint vbo;
-    // index buffer object
-    GLuint ibo;
 
     GLint projectionLoc;
     GLint modelLoc;
     GLint samplerLoc;
-    
-    size_t vertexCount;
-    size_t vertexSize;
-
-    VertexFormat_e vertexFormat;
-
     Context_t *context;
-    void *dynamicVertexBuffer;
 } Renderer_t;
 
 
@@ -141,11 +151,19 @@ void Shader_checkProgError(uint32_t program);
 
 void Shader_compileDefaultShaders();
 
+void IndexBuffer_bind(IndexBuffer_t *ib);
+
+void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t dataSize, uint32_t *indexData);
+
+void VertexBuffer_bind(VertexBuffer_t *vb);
+
+void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t vertexCount, size_t bufferSize, void *vertexData);
+
 bool Renderer_checkBound(Renderer_t *renderer);
 
 void Renderer_bind(Renderer_t *renderer);
 
-void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, GLenum usage, size_t bufferSize, void *vertexBuffer);
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, IndexBuffer_t ib);
 
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size);
 

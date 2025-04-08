@@ -150,6 +150,25 @@ void DW_initGame() {
     // Init default scene
     if (currentScene != NULL) currentScene->init();
 
+    testRenderer = malloc(sizeof(Renderer_t));
+
+    Vertex_PC verticies[] = {
+        (Vertex_PC) { left, bottom, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f },
+        (Vertex_PC) { left, top, 0.0f,      0.0f, 1.0f, 0.0f, 1.0f },
+        (Vertex_PC) { right, top, 0.0f,     0.0f, 0.0f, 1.0f, 1.0f },
+        (Vertex_PC) { right, bottom, 0.0f,  1.0f, 1.0f, 0.0f, 1.0f }
+    };
+
+    uint32_t indicies[] = {
+        0, 1, 2, 0, 2, 3
+    };
+
+    VertexBuffer_t vb;
+    VertexBuffer_init(&vb, VERTEX_FORMAT_PC, sizeof(verticies) / sizeof(Vertex_PC), sizeof(verticies), verticies);
+    IndexBuffer_t ib;
+    IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
+
+    Renderer_init(testRenderer, context, vb, ib);
 }
 
 void DW_exitGame() {
@@ -170,7 +189,6 @@ void DW_tick() {
 
 void DW_render(float partialTicks) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
     // draw current scene
     if (currentScene != NULL) {
@@ -178,8 +196,9 @@ void DW_render(float partialTicks) {
     }
 
 
-    // Renderer_bind(fontRenderer->renderer);
-    FontRenderer_drawChar(fontRenderer, '\n');
+    Renderer_bind(testRenderer);
+    Renderer_draw(testRenderer);
+    // FontRenderer_drawChar(fontRenderer, '\n');
 }
 
 int main(int argc, char **argv) {
@@ -197,6 +216,7 @@ int main(int argc, char **argv) {
     uint32_t ticks = 0;
 
     // Game loop
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     while (!glfwWindowShouldClose(window)) {
 
         // uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;

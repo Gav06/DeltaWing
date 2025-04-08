@@ -8,7 +8,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-size_t VertexFormat_getSize(VertexFormat_e format) {
+size_t VertexFormat_sizeOf(VertexFormat_e format) {
     if (format < 0 || format >= VERTEX_FORMAT_TOTAL) {
         fprintf(stderr, "Error: Attempted to get size of invalid vertex format.\n");
         return 0;
@@ -231,7 +231,6 @@ void Shader_compileDefaultShaders() {
         }
         Shader_defaultShaderPrograms_m[i] = prog;
     }
-    
 }
 
 void Context_init(Context_t *c, uint32_t width, uint32_t height) {
@@ -261,120 +260,104 @@ void Context_free(Context_t *context) {
     context = NULL;
 }
 
-void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, GLenum usage, size_t vertexCount, void *vertexBuffer) {
+void IndexBuffer_bind(IndexBuffer_t *ib) {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib->ibo);
+}
+
+void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t bufferSize, uint32_t *indexBuffer) {
+    ib->indexCount = indexCount;
+    ib->indexData = indexBuffer;
+
+    glGenBuffers(1, &ib->ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize, indexBuffer, GL_STATIC_DRAW);
+}
+
+void VertexBuffer_bind(VertexBuffer_t *vb) {
+    glBindBuffer(GL_ARRAY_BUFFER, vb->vbo);
+}
+
+void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t vertexCount, size_t bufferSize, void *vertexData) {
+    vb->format = vertexFormat;
+    vb->vertexSize = VertexFormat_sizeOf(vertexFormat);
+    vb->bufferSize = bufferSize;
+    vb->vertexCount = vertexCount;
+
+    glGenBuffers(1, &vb->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vb->vbo);
+    glBufferData(GL_ARRAY_BUFFER, vb->bufferSize, vertexData, GL_STATIC_DRAW);
+}
+
+// This is assuming the VBO and IBO have already been initialized and had data passed to them.
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, IndexBuffer_t ib) {
     renderer->context = context;
-    renderer->shader = Shader_defaultShaderPrograms_m[format];
+    renderer->shader = Shader_defaultShaderPrograms_m[vb.format];
     // default primitive is triangle strip as quads, but this will be
     // replaced with an element buffer later on
-    renderer->primitive = GL_TRIANGLE_STRIP;
-    renderer->vertexFormat = format;
-    renderer->vertexSize = VertexFormat_getSize(format);
-    renderer->vertexCount = vertexCount;
-    renderer->usage = usage;
-
-    size_t bufferSize = vertexCount * renderer->vertexSize;
-
-    // Create vao and vbo
+    renderer->primitive = GL_TRIANGLES;
+    renderer->vb = vb;
+    renderer->ib = ib;
+    
+    // Create vao
     glGenVertexArrays(1, &renderer->vao);
     glBindVertexArray(renderer->vao);
 
-    glGenBuffers(1, &renderer->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
-
-    if (renderer->usage == GL_STATIC_DRAW) {
-        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertexBuffer, usage);
-    } else {
-        // If usage is GL_STREAM_DRAW or GL_DYNAMIC_DRAW
-        // (vertex data will be supplied later, in a just-in-time or immediate fashion)
-        renderer->dynamicVertexBuffer = malloc(renderer->vertexSize * MAX_VERTICIES);
-        // data will be passed later with glBufferSubData
-        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICIES * renderer->vertexSize, NULL, usage);
-    }
-
-    // attribute 0 will always be the position, consisting of 3 floats
-    // across all of our vertex formats
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) 0);
 
     glEnableVertexAttribArray(1);
-    switch (format) {
+    switch (vb.format) {
     case VERTEX_FORMAT_PC:
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, renderer->vertexSize, (void*) offsetof(Vertex_PC, color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.vertexSize, (void*) offsetof(Vertex_PC, color));
         break;
     case VERTEX_FORMAT_PT:
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) offsetof(Vertex_PT, uv));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) offsetof(Vertex_PT, uv));
         break;
     case VERTEX_FORMAT_PCT:
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, renderer->vertexSize, (void*) offsetof(Vertex_PCT, color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.vertexSize, (void*) offsetof(Vertex_PCT, color));
 
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, renderer->vertexSize, (void*) offsetof(Vertex_PCT, uv));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) offsetof(Vertex_PCT, uv));
         break;
     default:
         fprintf(stderr, "Error: Attempted to create Renderer with unknown Vertex format.\n");
         break;
     }
 
-    // setup some shader uniforms
-    glUseProgram(renderer->shader);
-    // set our projection matrix now because it doesn't change at the moment.
-    // our transformation matrix will be set every frame though.
-    // use texture unit 0 as default
     renderer->projectionLoc = glGetUniformLocation(renderer->shader, "projection");
     renderer->modelLoc = glGetUniformLocation(renderer->shader, "model");
 
-    // if we use a vertex format the has tex
-    if (format != VERTEX_FORMAT_PC) {
+    if (vb.format != VERTEX_FORMAT_PC) {
         renderer->samplerLoc = glGetUniformLocation(renderer->shader, "textureIn");
+    } else {
+        renderer->samplerLoc = -1;
     }
-    
-    glUseProgram(0);
+
+    printf("uniform proj %d model %d sampler %d\n", renderer->projectionLoc, renderer->modelLoc, renderer->samplerLoc);
 }
 
 void Renderer_bind(Renderer_t *renderer) {
     glBindVertexArray(renderer->vao);
-    
-    // if (renderer->useIndexBuffer) {
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
-    // } else {
-        glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
-    // }
-
+    VertexBuffer_bind(&renderer->vb);
+    IndexBuffer_bind(&renderer->ib);
     glUseProgram(renderer->shader);
 }
 
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
-
-    if (renderer->vertexFormat != VERTEX_FORMAT_PC) {
-        // int at;
-        // glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
+    if (renderer->vb.format != VERTEX_FORMAT_PC) {
         glUniform1i(renderer->samplerLoc, 0);
     }
     
     glUniformMatrix4fv(renderer->projectionLoc, 1, GL_FALSE, (float*) &renderer->context->projectionMatrix);
     glUniformMatrix4fv(renderer->modelLoc, 1, GL_FALSE, (float*) MatrixStack_peek(renderer->context->matrixStack));
-
-    if (renderer->usage != GL_STATIC_DRAW) {
-        glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->vertexCount * renderer->vertexSize, renderer->dynamicVertexBuffer);
-    }
-
-    // if (renderer->useIndexBuffer) {
-        // glDrawElements(renderer->primitive, size, GL_UNSIGNED_INT, NULL);
-    // } else {
-        glDrawArrays(renderer->primitive, start, size);
-    // }
+    glDrawElements(renderer->primitive, renderer->ib.indexCount, GL_UNSIGNED_INT, NULL);
 }
 
 void Renderer_draw(Renderer_t *renderer) {
-    Renderer_drawIndexed(renderer, 0, renderer->vertexCount);
+    Renderer_drawIndexed(renderer, 0, renderer->vb.vertexCount);
 }
 
 void Renderer_free(Renderer_t *renderer) {
-    if (renderer->usage != GL_STATIC_DRAW) {
-        free(renderer->dynamicVertexBuffer);
-        renderer->dynamicVertexBuffer = NULL;
-    }
-
-    free(renderer);    
+    free(renderer);
     renderer = NULL;
 }

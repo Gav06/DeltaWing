@@ -52,6 +52,7 @@ int64_t DW_currentTimeMillis() {
     return s1 + s2;
 }
 
+// Sleep function that supports compilation across platforms
 #ifdef _WIN32
     #include <windows.h>
 #else
