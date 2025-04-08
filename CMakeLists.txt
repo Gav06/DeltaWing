@@ -66,5 +66,7 @@ target_link_libraries(${PROJECT_NAME}
     ${GLFW_LIB} m
 )
 
-# Enable optimizations
-target_compile_options(${PROJECT_NAME} PRIVATE -g)
+# Set compiler flags
+# Note that -g is for debug symbols to be included, so that
+# will be removed when compiling for a release setting, as well as adding -O3 optimizations
+target_compile_options(${PROJECT_NAME} PRIVATE -g -std=gnu99 -Wall )

@@ -31,7 +31,7 @@ const char* DW_loadSourceFile(const char *filePath) {
     textBuf[fileSize] = '\0';
 
     if (bytesRead < fileSize) {
-        fprintf(stderr, "Error: Failed reading source file %s bytesRead: %u fileSize: %u\n", filePath, bytesRead, fileSize);
+        fprintf(stderr, "Error: Failed reading source file %s bytesRead: %lu fileSize: %u\n", filePath, bytesRead, fileSize);
         free(textBuf);
         fclose(file);
         return NULL;

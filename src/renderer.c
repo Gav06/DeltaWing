@@ -18,6 +18,7 @@ size_t VertexFormat_sizeOf(VertexFormat_e format) {
     case VERTEX_FORMAT_PC: return sizeof(Vertex_PC);
     case VERTEX_FORMAT_PT: return sizeof(Vertex_PT);
     case VERTEX_FORMAT_PCT: return sizeof(Vertex_PCT);
+    default: return 0;
     }
 }
 
@@ -254,9 +255,9 @@ void Context_init(Context_t *c, uint32_t width, uint32_t height) {
 
 void Context_free(Context_t *context) {
     free(context->matrixStack);
-    free(context);
-    
     context->matrixStack = NULL;
+
+    free(context);    
     context = NULL;
 }
 
@@ -273,15 +274,14 @@ void IndexBuffer_free(IndexBuffer_t *ib) {
     glDeleteBuffers(1, &ib->ibo);
 }
 
-void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t vertexCount, size_t bufferSize, void *vertexData) {
-    vb->format = vertexFormat;
-    vb->vertexSize = VertexFormat_sizeOf(vertexFormat);
+void VertexBuffer_init(VertexBuffer_t *vb, size_t vertexSize, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData) {
+    vb->vertexSize = vertexSize;
     vb->bufferSize = bufferSize;
     vb->vertexCount = vertexCount;
 
     glGenBuffers(1, &vb->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vb->vbo);
-    glBufferData(GL_ARRAY_BUFFER, vb->bufferSize, vertexData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vb->bufferSize, vertexData, usage);
 }
 
 void VertexBuffer_free(VertexBuffer_t *vb) {
@@ -289,9 +289,10 @@ void VertexBuffer_free(VertexBuffer_t *vb) {
 }
 
 // This is assuming the VBO and IBO have already been initialized and had data passed to them.
-void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, IndexBuffer_t ib) {
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, VertexBuffer_t vb, IndexBuffer_t ib) {
+    renderer->vertexFormat = format;
     renderer->context = context;
-    renderer->shader = Shader_defaultShaderPrograms_m[vb.format];
+    renderer->shader = Shader_defaultShaderPrograms_m[format];
     // default primitive is triangle strip as quads, but this will be
     // replaced with an element buffer later on
     renderer->primitive = GL_TRIANGLES;
@@ -306,7 +307,7 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) 0);
 
     glEnableVertexAttribArray(1);
-    switch (vb.format) {
+    switch (format) {
     case VERTEX_FORMAT_PC:
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.vertexSize, (void*) offsetof(Vertex_PC, color));
         break;
@@ -327,7 +328,7 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, 
     renderer->projectionLoc = glGetUniformLocation(renderer->shader, "projection");
     renderer->modelLoc = glGetUniformLocation(renderer->shader, "model");
 
-    if (vb.format != VERTEX_FORMAT_PC) {
+    if (format != VERTEX_FORMAT_PC) {
         renderer->samplerLoc = glGetUniformLocation(renderer->shader, "textureIn");
     } else {
         renderer->samplerLoc = -1;
@@ -342,7 +343,7 @@ void Renderer_bind(Renderer_t *renderer) {
 }
 
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
-    if (renderer->vb.format != VERTEX_FORMAT_PC) {
+    if (renderer->vertexFormat != VERTEX_FORMAT_PC) {
         glUniform1i(renderer->samplerLoc, 0);
     }
     

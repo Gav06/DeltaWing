@@ -90,7 +90,7 @@ Block_t parse_Block(const uint8_t *buf, size_t bufSize) {
 
 // this assumes that the start of the buffer contains the start of
 // this particular character data block
-CharData_t parse_CharData(uint8_t *buf, size_t bufSize) {
+CharData_t parse_CharData(uint8_t *buf, size_t bufSize, uint32_t texW, uint32_t texH) {
     if (bufSize < 20) {
         fprintf(stderr, "Error: CharData buffer size mismatch, unable to parse CharData properly.\n");
     }
@@ -107,7 +107,7 @@ CharData_t parse_CharData(uint8_t *buf, size_t bufSize) {
     uint16_t h = parse_uint16(buf, bufSize, 10);
     uint8_t channel = buf[19];
 
-    return (CharData_t) {
+    CharData_t charData = {
         .character = id,
         .x = x,
         .y = y,
@@ -115,6 +115,20 @@ CharData_t parse_CharData(uint8_t *buf, size_t bufSize) {
         .height = h,
         .channel = channel
     };
+        
+    // tex left
+    float u = x / (float) texW;
+    // tex right
+    float uW = (x + w) / (float) texW;
+    // tex top
+    float v = 1.0f - (y / (float) texH);
+    // tex bottom
+    float vH = 1.0f - ((y + h) / (float) texH);
+
+    glm_vec2_copy((vec2) { u, v }, charData.uv);
+    glm_vec2_copy((vec2) { uW, vH }, charData.uvSize);
+
+    return charData;
 }
 
 void read_bytes(uint8_t *buf, FILE *file, size_t amount) {
@@ -202,7 +216,8 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     // read every char
     for (int i = 0; i < charCount; i++) {
         read_bytes(buf, filePtr, 20);
-        CharData_t charData = parse_CharData(buf, bufSize);
+        // charData requires texture size for calculating UV coordinates
+        CharData_t charData = parse_CharData(buf, bufSize, fontData->fontAtlas.width, fontData->fontAtlas.height);
         fontData->charData[i] = charData;
     }
 
@@ -212,54 +227,41 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
 }
 
 // Puts the verticies for a given char into the given vertex array
-void CharData_genUV(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
+GlyphInstance_t CharData_genGlyphInstance(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
     CharData_t *charData = &fontData->charData[charIndex];
-    float texW = (float) fontData->fontAtlas.width;
-    float texH = (float) fontData->fontAtlas.height;
-    if (index + 3 > bufLen) {
-        fprintf(stderr, "Error: Generating font verticies, buffer too small\n");
-        return;
-    }
 
-    
-    float texLeft = (charData->x) / texW;
-    float texRight = (charData->x + charData->width) / texW;
+    GlyphInstance_t glyph;
+    glm_vec2_copy(charData->uv, glyph.uv);
+    glm_vec2_copy(charData->uvSize, glyph.uvSize);
 
-    // top in uv coords is 1.0
-    float texTop = 1.0f - (charData->y / texH);
-    float texBottom = 1.0f - ((charData->y + charData->height) / texH);
-    
-    
-    // top left vertex
-    buffer[index] = (Vertex_PT) { 0.0f, 0.0f, 0.0f,                             texLeft, texTop };
-    // bottom left vertex
-    buffer[index + 1] = (Vertex_PT) { 0.0f, charData->height, 0.0f,             texLeft, texBottom };
-    // top right vertex
-    buffer[index + 2] = (Vertex_PT) { charData->width, 0.0f, 0.0f,              texRight, texTop };
-    // bottom right vertex
-    buffer[index + 3] = (Vertex_PT) { charData->width, charData->height, 0.0f,  texRight, texBottom };
+    glyph.advance = charData->width;
+
+    return glyph;
 }
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath) {
+    // setup struct
     font->fontPath = fontPath;
     font->context = context;
+    // load chars and font data
     font->fontData = (FontData_t*) malloc(sizeof(FontData_t));
     FontRenderer_loadData(fontPath, font->fontData);
-    // allocate and initialize a new static renderer
-    size_t vertexCount = font->fontData->charCount * 4;
 
-    // each "quad" for each char will have 4 verticies
-    Vertex_PT fontVerticies[vertexCount];
+    // Create glyph instance data
+    font->instanceData = malloc(sizeof(GlyphInstance_t) * font->fontData->charCount);
 
     for (size_t i = 0; i < font->fontData->charCount; i++) {
         // every 4 verticies
-        CharData_genUV(font->fontData, i, fontVerticies, vertexCount, i * 4);
+        // CharData_genGlyphInstance(font->fontData, i, fontVerticies, vertexCount, i * 4);
     }
 
-    VertexBuffer_t vb;
-    VertexBuffer_init(&vb, VERTEX_FORMAT_PT, vertexCount, sizeof(fontVerticies), fontVerticies);
 
-    // we are basically only drawing 2 triangles as a single quad
+    // create render pipeline
+
+
+    VertexBuffer_t instanceVB;
+    // instanceVB.bufferSize = 
+    
     uint32_t indicies[] = {
         0, 1, 2, 0, 2, 3
     };
@@ -299,27 +301,37 @@ void FontData_free(FontData_t *fontData) {
 void FontRenderer_free(FontRenderer_t *font) {
     // Renderer_free(font->renderer);    
     FontData_free(font->fontData);
+    glDeleteBuffers(1, &font->ib.ibo);
+    glDeleteBuffers(1, &font->vb.vbo);
+    free(font->instanceData);
     free(font);
 }
 
-void FontRenderer_drawChar(FontRenderer_t *font, char character) {
-    if (character < 32 || character > 126) {
-        character = '?';
-    }
+void FontRenderer_drawString(FontRenderer_t *font, char *text) {
+    // build instance buffer
+    
 
+    for (int i = 0; i < strlen(text); i++) {
+
+        char c = text[i];
+        if (c < GLYPH_FIRST || c > GLYPH_LAST) {
+            c = '?';
+        }
+
+        printf("%c ", c);
+    }
+    printf("\n");
     FontRenderer_bind(font);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font->fontData->fontAtlas.texId);
 
-    // glDrawElementsInstanced(GL_TRIANGLES, font->ib.indexCount, GL_UNSIGNED_INT, NULL, 10);
+    glDrawElementsInstanced(GL_TRIANGLES, font->ib.indexCount, GL_UNSIGNED_INT, NULL, 1);
 }
 
+size_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text) {
+    size_t totalWidth = 0;
+    for (int i = 0; i < strlen(text); i++) {
 
-void FontRenderer_drawString(FontRenderer_t *font, char *text) {
-
-}
-
-uint32_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text) {
-
+    }
 }
  

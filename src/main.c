@@ -53,7 +53,7 @@ void DW_keyCallback(GLFWwindow *window, int key, int scancode, int action, int m
 }
 
 void DW_mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
-    if (0 <= button <= 8) {
+    if (0 <= button) {
         input->mouseState[button] = action;
     }
 }
@@ -97,8 +97,8 @@ bool DW_initWindow() {
         return true;
     }
 
-    const char *version = glGetString(GL_VERSION);
-    const char *renderer = glGetString(GL_RENDERER);
+    const unsigned char *version = glGetString(GL_VERSION);
+    const unsigned char *renderer = glGetString(GL_RENDERER);
     printf("OpenGL: %s\n", version);
     printf("Renderer: %s\n", renderer);
 
@@ -153,10 +153,10 @@ void DW_initGame() {
     testRenderer = malloc(sizeof(Renderer_t));
 
     Vertex_PT verticies[] = {
-        { left, bottom, 0.0f,   0.0f, 0.0f },
-        { left, top, 0.0f,      0.0f, 1.0f },
-        { right, top, 0.0f,     1.0f, 1.0f },
-        { right, bottom, 0.0f,  1.0f, 0.0f }
+        { { left, bottom, 0.0f }, { 0.0f, 0.0f } },
+        { { left, top, 0.0f }, { 0.0f, 1.0f } },
+        { { right, top, 0.0f }, { 1.0f, 1.0f } },
+        { { right, bottom, 0.0f }, { 1.0f, 0.0f } }
     };
 
     uint32_t indicies[] = {
@@ -164,11 +164,11 @@ void DW_initGame() {
     };
 
     VertexBuffer_t vb;
-    VertexBuffer_init(&vb, VERTEX_FORMAT_PT, sizeof(verticies) / sizeof(Vertex_PT), sizeof(verticies), verticies);
+    VertexBuffer_init(&vb, sizeof(Vertex_PT), sizeof(verticies) / sizeof(Vertex_PT), sizeof(verticies), GL_STATIC_DRAW, verticies);
     IndexBuffer_t ib;
     IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
 
-    Renderer_init(testRenderer, context, vb, ib);
+    Renderer_init(testRenderer, context, VERTEX_FORMAT_PT,vb, ib);
 
 }
 
@@ -216,7 +216,7 @@ void DW_render(float partialTicks) {
     MatrixStack_popMatrix(context->matrixStack);
 
 
-    FontRenderer_drawChar(fontRenderer, 'g');
+    FontRenderer_drawString(fontRenderer, "gavin rules");
 }
 
 int main(int argc, char **argv) {

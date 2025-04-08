@@ -3,6 +3,11 @@
 
 #include "renderer.h"
 
+// We only support standard ASCII glyphs, no unicode
+#define GLYPH_FIRST 32
+#define GLYPH_LAST 126
+#define GLYPH_COUNT (GLYPH_LAST - GLYPH_FIRST +1)
+
 typedef struct CharData {
     char character;
 
@@ -12,7 +17,10 @@ typedef struct CharData {
     uint16_t width;
     uint16_t height;
     
-    uint8_t channel;    
+    uint8_t channel;
+
+    vec2 uv;
+    vec2 uvSize;
 } CharData_t;
 
 typedef struct FontData {
@@ -25,6 +33,17 @@ typedef struct FontData {
     CharData_t *charData;
 } FontData_t;
 
+
+// intermediary struct for data that will be passed to the instancing VBO
+typedef struct GlyphInstance {
+    // char x, y as UV
+    vec2 uv;
+    // char width, height as UV
+    vec2 uvSize;
+    // advance to next char
+    float advance;
+} GlyphInstance_t;
+
 // This is a different type of renderer,
 // unlike Renderer_t, we will use instancing to
 // draw chars for better performance, since our data will
@@ -32,7 +51,9 @@ typedef struct FontData {
 typedef struct FontRenderer {
     // null terminated string
     char *fontPath;
+    // where the data from our font file is stored (on heap)
     FontData_t *fontData;
+    // pointer to our rendering context, there is usually only 1 of these
     Context_t *context;
 
     // renderer variables
@@ -40,6 +61,9 @@ typedef struct FontRenderer {
     VertexBuffer_t vb;
     IndexBuffer_t ib;
     GLuint shader;
+
+    // our glyph information, for our instancing vbo
+    GlyphInstance_t *instanceData;
 } FontRenderer_t;
 
 void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath);
@@ -48,10 +72,8 @@ void FontRenderer_bind(FontRenderer_t *font);
 
 void FontRenderer_free(FontRenderer_t *font);
 
-void FontRenderer_drawChar(FontRenderer_t *font, char character);
-
 void FontRenderer_drawString(FontRenderer_t *font, char *text);
 
-uint32_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text);
+size_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text);
 
 #endif

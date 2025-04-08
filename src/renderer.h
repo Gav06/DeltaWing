@@ -65,8 +65,6 @@ size_t VertexFormat_sizeOf(VertexFormat_e format);
 typedef struct VertexBuffer {
     // vertex buffer object
     GLuint vbo;
-    // format
-    VertexFormat_e format;
     // sizeof whichever vertex format we decide to go with
     size_t vertexSize;
     // number of defined verticies in our buffer
@@ -103,6 +101,7 @@ typedef struct Renderer {
     GLenum primitive;
     GLuint shader;
 
+    VertexFormat_e vertexFormat;
     VertexBuffer_t vb;
     IndexBuffer_t ib;
     GLuint vao;
@@ -155,7 +154,7 @@ void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t dataSize, uin
 
 void IndexBuffer_free(IndexBuffer_t *ib);
 
-void VertexBuffer_init(VertexBuffer_t *vb, VertexFormat_e vertexFormat, size_t vertexCount, size_t bufferSize, void *vertexData);
+void VertexBuffer_init(VertexBuffer_t *vb, size_t vertexSize, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData);
 
 void VertexBuffer_free(VertexBuffer_t *vb);
 
@@ -163,7 +162,7 @@ bool Renderer_checkBound(Renderer_t *renderer);
 
 void Renderer_bind(Renderer_t *renderer);
 
-void Renderer_init(Renderer_t *renderer, Context_t *context, VertexBuffer_t vb, IndexBuffer_t ib);
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, VertexBuffer_t vb, IndexBuffer_t ib);
 
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size);
 
