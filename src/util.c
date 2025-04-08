@@ -53,16 +53,10 @@ int64_t DW_currentTimeMillis() {
 }
 
 // Sleep function that supports compilation across platforms
-#ifdef _WIN32
-    #include <windows.h>
-#else
     #include <unistd.h>
-#endif
+
 
 void DW_sleepMillis(uint32_t ms) {
-#ifdef _WIN32
-    Sleep(ms); // Sleep takes milliseconds
-#else
+
     usleep(ms * 1000); // usleep takes microseconds
-#endif
 }

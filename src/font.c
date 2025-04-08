@@ -321,7 +321,7 @@ void FontRenderer_drawString(FontRenderer_t *font, char *text) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, bufSize, bufData);
     // our buf size is the same as the amount of characters we are drawing, so that is how many instaces we need
     // which makes it safe to pass bufSize as instanceCount
-    glDrawElementsInstanced(GL_TRIANGLES, font->ib.indexCount, GL_UNSIGNED_INT, NULL, bufSize);
+    // glDrawElementsInstanced(GL_TRIANGLES, font->ib.indexCount, GL_UNSIGNED_INT, NULL, bufSize);
 }
 
 size_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text) {

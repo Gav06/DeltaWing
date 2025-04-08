@@ -14,11 +14,10 @@
 #define DISPLAY_WIDTHF 1280.0f
 #define DISPLAY_HEIGHTF 720.0f
 
-#define TARGET_FPS 60
-#define MS_PER_FRAME (1000 / TARGET_FPS)
-
 #define TARGET_TPS 30
 #define MS_PER_TICK (1000 / TARGET_TPS)
+
+#define MAX_DELTA_TIME 250
 
 GLFWwindow *window;
 Input_t *input;
@@ -230,41 +229,49 @@ int main(int argc, char **argv) {
 
     uint64_t lastTime = DW_currentTimeMillis();
     uint64_t accumulator = 0;
-    uint64_t frameStart, deltaTime;
+    uint64_t lastFPSTime = lastTime;
     uint32_t ticks = 0;
+    uint32_t frames = 0;
 
     // Game loop
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     while (!glfwWindowShouldClose(window)) {
-
-        // uint64_t currentFrameTime = DW_currentTimeMillis() - startTime;
-        frameStart = DW_currentTimeMillis();
-        deltaTime = frameStart - lastTime;
-        lastTime = frameStart;
+        uint64_t currentTime = DW_currentTimeMillis();
+        uint64_t deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+        
+        // Cap deltaTime to prevent spiral of death if game hangs
+        if (deltaTime > MAX_DELTA_TIME)
+            deltaTime = MAX_DELTA_TIME;
+            
         accumulator += deltaTime;
-
+        
+        // Process physics at fixed time step
         while (accumulator >= MS_PER_TICK) {
             DW_tick();
-            
             ticks++;
             accumulator -= MS_PER_TICK;
         }
-
-        const float partialTicks = (float) accumulator / MS_PER_TICK;
-        // partialTicks is apart of Context struct and passed into render so it is accessible from virtually anywhere
+        
+        // Calculate partial ticks for smooth rendering
+        const float partialTicks = (float)accumulator / MS_PER_TICK;
         context->partialTicks = partialTicks;
         
+        // Render
         DW_render(partialTicks);
+
+        frames++;
+        
+        // FPS counter
+        if (currentTime - lastFPSTime >= 1000) {
+            printf("FPS: %u, Ticks: %u\n", frames, ticks);
+            frames = 0;
+            ticks = 0;
+            lastFPSTime = currentTime;
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        // limit fps
-        uint64_t frameEnd = DW_currentTimeMillis();
-        uint64_t frameDuration = frameEnd - frameStart;
-        if (frameDuration < MS_PER_FRAME) {
-            DW_sleepMillis(MS_PER_FRAME - frameDuration);
-        }
     }
 
     // This must be called before destroying our context because
