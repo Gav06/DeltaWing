@@ -124,14 +124,14 @@ void DW_setScene(Scene_t *scene) {
     }
 }
 
-Renderer_t *testRenderer;
-
-const float left = (DISPLAY_WIDTH / 2) - 256.0f;
-const float right = (DISPLAY_WIDTH / 2) + 256.0f;
-const float top = (DISPLAY_HEIGHT / 2) - 256.0f;
-const float bottom = (DISPLAY_HEIGHT / 2) + 256.0f;
+const float left = (DISPLAY_WIDTHF / 2.0f) - 256.0f;
+const float right = (DISPLAY_WIDTHF / 2.0f) + 256.0f;
+const float top = (DISPLAY_HEIGHTF / 2.0f) - 256.0f;
+const float bottom = (DISPLAY_HEIGHTF / 2.0f) + 256.0f;
 
 GLuint testTexture;
+
+Renderer_t *testRenderer;
 
 void DW_initGame() {
     // Compile shaders for all of our vertex formats
@@ -169,6 +169,7 @@ void DW_initGame() {
     IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
 
     Renderer_init(testRenderer, context, vb, ib);
+
 }
 
 void DW_exitGame() {
@@ -195,11 +196,27 @@ void DW_render(float partialTicks) {
         currentScene->render(dynRenderer, context);
     }
 
+    float centerX = DISPLAY_WIDTHF / 2.0f;
+    float centerY = DISPLAY_HEIGHTF / 2.0f;
 
+
+    glDisable(GL_CULL_FACE);
+
+    MatrixStack_pushMatrix(context->matrixStack);
+
+    MatrixStack_translate(context->matrixStack, (vec3) { centerX, centerY, 0.0f });
+    MatrixStack_rotate(context->matrixStack, glfwGetTime(), (vec3) { 0.0f, 0.0f, 1.0f });
+    MatrixStack_translate(context->matrixStack, (vec3) { -centerX, -centerY, 0.0f });
+
+
+    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->fontAtlas.texId);
     Renderer_bind(testRenderer);
-    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture.texId);
     Renderer_draw(testRenderer);
-    // FontRenderer_drawChar(fontRenderer, '\n');
+
+    MatrixStack_popMatrix(context->matrixStack);
+
+
+    FontRenderer_drawChar(fontRenderer, 'g');
 }
 
 int main(int argc, char **argv) {

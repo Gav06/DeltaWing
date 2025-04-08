@@ -187,7 +187,7 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     char texPath[128] = "assets/";
     strcat(texPath, texName);
 
-    fontData->texture = DW_loadTexture(texPath);
+    fontData->fontAtlas = DW_loadTexture(texPath);
 
     // load char data from block 4
     read_bytes(buf, filePtr, 5);
@@ -214,8 +214,8 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
 // Puts the verticies for a given char into the given vertex array
 void CharData_genUV(FontData_t *fontData, int charIndex, Vertex_PT *buffer, size_t bufLen, size_t index) {
     CharData_t *charData = &fontData->charData[charIndex];
-    float texW = (float) fontData->texture.width;
-    float texH = (float) fontData->texture.height;
+    float texW = (float) fontData->fontAtlas.width;
+    float texH = (float) fontData->fontAtlas.height;
     if (index + 3 > bufLen) {
         fprintf(stderr, "Error: Generating font verticies, buffer too small\n");
         return;
@@ -307,10 +307,11 @@ void FontRenderer_drawChar(FontRenderer_t *font, char character) {
         character = '?';
     }
 
+    FontRenderer_bind(font);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, font->fontData->texture.texId);
-    // Renderer_bind(font->renderer);
-    // Renderer_drawIndexed(font->renderer, (character - 32) * 4, 4);
+    glBindTexture(GL_TEXTURE_2D, font->fontData->fontAtlas.texId);
+
+    // glDrawElementsInstanced(GL_TRIANGLES, font->ib.indexCount, GL_UNSIGNED_INT, NULL, 10);
 }
 
 

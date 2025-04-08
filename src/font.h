@@ -16,7 +16,7 @@ typedef struct CharData {
 } CharData_t;
 
 typedef struct FontData {
-    Texture_t texture;
+    Texture_t fontAtlas;
 
     size_t nameLen;
     char *fontName;
