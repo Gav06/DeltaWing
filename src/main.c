@@ -87,9 +87,9 @@ void DW_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
     input->mouseY = (uint32_t) ypos;
 }
 
-int DW_initWindow() {    
+bool DW_initWindow() {    
     if (!glfwInit()) {
-        return 1;
+        return true;
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -111,12 +111,12 @@ int DW_initWindow() {
     if (!window) {
         fprintf(stderr, "Error: Unable to create GLFW window");
         glfwTerminate();
-        return 1;
+        return true;
     }
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         fprintf(stderr, "Error: Couldn't load OpenGL\n");
-        return 1;
+        return true;
     }
 
     const char *version = glGetString(GL_VERSION);
@@ -129,7 +129,11 @@ int DW_initWindow() {
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
     glDebugMessageCallback((GLDEBUGPROC) DW_GLerrorCallback, 0);
 
-    return 0;
+    // setup our GL state a little bit
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    return false;
 }
 
 void DW_setScene(Scene_t *scene) {
@@ -167,37 +171,6 @@ void DW_initGame() {
 
     // Init default scene
     if (currentScene != NULL) currentScene->init();
-    
-
-    glGenTextures(1, &testTexture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, testTexture);
-    unsigned char data[] = {255, 128, 255, 255}; // 1x1 red pixel
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    testRenderer = malloc(sizeof(Renderer_t));
-
-    Vertex_PT verticies[] = {
-        (Vertex_PT) { left, top, 0.0f, 0.0f, 1.0f },
-        (Vertex_PT) { left, bottom, 0.0f, 0.0f, 0.0f },
-        (Vertex_PT) { right, top, 0.0f, 1.0f, 1.0f },
-        (Vertex_PT) { right, bottom, 0.0f, 1.0f, 0.0f }
-    };
-    
-    Renderer_init(
-        testRenderer, 
-        context, 
-        VERTEX_FORMAT_PT, 
-        GL_STATIC_DRAW, 
-        4, 
-        verticies
-    );
 
 }
 
@@ -226,17 +199,9 @@ void DW_render(float partialTicks) {
         currentScene->render(dynRenderer, context);
     }
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    Renderer_bind(testRenderer);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->texture.texId);
-    Renderer_draw(testRenderer);
-
 
     Renderer_bind(fontRenderer->renderer);
-    FontRenderer_drawChar(fontRenderer, 'f');
+    FontRenderer_drawChar(fontRenderer, '\n');
 }
 
 int main(int argc, char **argv) {

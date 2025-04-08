@@ -280,6 +280,10 @@ void FontRenderer_free(FontRenderer_t *font) {
 }
 
 void FontRenderer_drawChar(FontRenderer_t *font, char character) {
+    if (character < 32 || character > 126) {
+        character = '?';
+    }
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font->fontData->texture.texId);
 

@@ -413,7 +413,7 @@ void Renderer_bind(Renderer_t *renderer) {
     glBindVertexArray(renderer->vao);
     
     if (renderer->useIndexBuffer) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->eab);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
     }
