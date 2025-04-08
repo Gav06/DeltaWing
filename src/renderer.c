@@ -359,6 +359,7 @@ void Renderer_draw(Renderer_t *renderer) {
 void Renderer_free(Renderer_t *renderer) {
     IndexBuffer_free(&renderer->ib);
     VertexBuffer_free(&renderer->vb);
+    glDeleteVertexArrays(1, &renderer->vao);
     free(renderer);
     renderer = NULL;
 }
