@@ -145,6 +145,8 @@ uint32_t Shader_createProgram(const char *vertShader, const char *fragShader) {
     glDeleteShader(vs);
     glDeleteShader(fs);
 
+    printf("Compiled GLSL shader program: %u\n", program);
+
     return program;
 }
 
@@ -274,8 +276,8 @@ void IndexBuffer_free(IndexBuffer_t *ib) {
     glDeleteBuffers(1, &ib->ibo);
 }
 
-void VertexBuffer_init(VertexBuffer_t *vb, size_t vertexSize, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData) {
-    vb->vertexSize = vertexSize;
+void VertexBuffer_init(VertexBuffer_t *vb, size_t stride, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData) {
+    vb->stride = stride;
     vb->bufferSize = bufferSize;
     vb->vertexCount = vertexCount;
 
@@ -304,21 +306,21 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     glBindVertexArray(renderer->vao);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vb.stride, (void*) 0);
 
     glEnableVertexAttribArray(1);
     switch (format) {
     case VERTEX_FORMAT_PC:
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.vertexSize, (void*) offsetof(Vertex_PC, color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.stride, (void*) offsetof(Vertex_PC, color));
         break;
     case VERTEX_FORMAT_PT:
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) offsetof(Vertex_PT, uv));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb.stride, (void*) offsetof(Vertex_PT, uv));
         break;
     case VERTEX_FORMAT_PCT:
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.vertexSize, (void*) offsetof(Vertex_PCT, color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.stride, (void*) offsetof(Vertex_PCT, color));
 
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vb.vertexSize, (void*) offsetof(Vertex_PCT, uv));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vb.stride, (void*) offsetof(Vertex_PCT, uv));
         break;
     default:
         fprintf(stderr, "Error: Attempted to create Renderer with unknown Vertex format.\n");
@@ -333,6 +335,10 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     } else {
         renderer->samplerLoc = -1;
     }
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void Renderer_bind(Renderer_t *renderer) {

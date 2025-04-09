@@ -3,6 +3,7 @@
 
 #include "renderer.h"
 #include "font.h"
+#include "util.h"
 
 
 typedef struct Block {
@@ -107,26 +108,27 @@ CharData_t parse_CharData(uint8_t *buf, size_t bufSize, uint32_t texW, uint32_t 
     uint16_t h = parse_uint16(buf, bufSize, 10);
     uint8_t channel = buf[19];
 
+    float uW = w / (float) texW;
+    float vH = (h / (float) texH);
+
+    // tex left
+    float u = x / (float) texW;
+    // tex right
+    // tex top
+    float v = 1.0f - (y / (float) texH) - vH;
+    // tex bottom
+
+    
     CharData_t charData = {
         .character = id,
         .x = x,
         .y = y,
         .width = w,
         .height = h,
-        .channel = channel
+        .channel = channel,
+        .uv = { u, v },
+        .uvSize = { uW, vH }
     };
-        
-    // tex left
-    float u = x / (float) texW;
-    // tex right
-    float uW = (x + w) / (float) texW;
-    // tex top
-    float v = 1.0f - (y / (float) texH);
-    // tex bottom
-    float vH = 1.0f - ((y + h) / (float) texH);
-
-    glm_vec2_copy((vec2) { u, v }, charData.uv);
-    glm_vec2_copy((vec2) { uW, vH }, charData.uvSize);
 
     return charData;
 }
@@ -226,11 +228,19 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
     printf("Loaded bitmap font: %s @ %s\n", fontData->fontName, texPath);
 }
 
-// Puts the verticies for a given char into the given vertex array
+// Puts the data relative to the font atlas into the glyph instance. position is set later when rendering.
 GlyphInstance_t CharData_genGlyphInstance(FontData_t *fontData, int charIndex) {
     CharData_t *charData = &fontData->charData[charIndex];
 
     GlyphInstance_t glyph;
+
+    // size, pos is done later
+    glm_vec2_copy(
+        (vec2) { (float) charData->width, (float) charData->height }, 
+        glyph.size
+    );
+
+    // uv data
     glm_vec2_copy(charData->uv, glyph.uv);
     glm_vec2_copy(charData->uvSize, glyph.uvSize);
 
@@ -248,35 +258,82 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
     FontRenderer_loadData(fontPath, font->fontData);
 
     // Create glyph instance data
-    font->instanceData = malloc(sizeof(GlyphInstance_t) * font->fontData->charCount);
+    size_t instanceSize = sizeof(GlyphInstance_t);
+    printf("charCount %lu\n", font->fontData->charCount);
+    font->instanceDataSize = instanceSize * font->fontData->charCount;
+    font->instanceData = malloc(font->instanceDataSize);
 
     for (size_t i = 0; i < font->fontData->charCount; i++) {
         font->instanceData[i] = CharData_genGlyphInstance(font->fontData, i);
     }
 
     // create render pipeline
-    VertexBuffer_t vb;
-    VertexBuffer_init(&vb, sizeof(vec3), 0, 0, GL_STREAM_DRAW, NULL);
+    
+    font->shader = Shader_createProgram(DW_loadSourceFile("assets/font.vert"), DW_loadSourceFile("assets/font.frag"));
 
-    uint32_t indicies[] = {
-        0, 1, 2, 0, 2, 3
-    };
-
-    IndexBuffer_t ib;
-    IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
 
     // setup our vao
     glGenVertexArrays(1, &font->vao);
     glBindVertexArray(font->vao);
 
+    uint32_t indicies[] = {
+        0, 1, 2, 0, 2, 3
+    };
+
+    font->ib = malloc(sizeof(IndexBuffer_t));
+    IndexBuffer_init(font->ib, 6, sizeof(indicies), indicies);
+
+
+    // setup usual vertex attributes
+    Vertex_PT verticies[] = {
+        { { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+        { { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f } },
+        { { 1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f } },
+        { { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } }
+    };
+
+    font->vb = malloc(sizeof(VertexBuffer_t));
+    VertexBuffer_init(font->vb, sizeof(Vertex_PT), 4, sizeof(verticies), GL_STATIC_DRAW, verticies);
+
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PT), (void*) 0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PT), (void*) offsetof(Vertex_PT, uv));
+
+    // Setup instance buffer attributes
+    font->instanceVb = malloc(sizeof(VertexBuffer_t));
+    VertexBuffer_init(font->instanceVb, instanceSize, 0, 0, GL_STREAM_DRAW, NULL);
+
+    // instance position
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, instanceSize, (void*) NULL);
+    glVertexAttribDivisor(2, 1);
+    // instance size
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, instanceSize, (void*) offsetof(GlyphInstance_t, size));
+    glVertexAttribDivisor(3, 1);
+
+    // uv
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, instanceSize, (void*) offsetof(GlyphInstance_t, uv));
+    glVertexAttribDivisor(4, 1);
+
+    // uv size
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, instanceSize, (void*) offsetof(GlyphInstance_t, uvSize));
+    glVertexAttribDivisor(5, 1);
+
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void FontRenderer_bind(FontRenderer_t *font) {
     glUseProgram(font->shader);
     glBindVertexArray(font->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, font->vb.vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, font->ib.ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, font->ib->ibo);
 }
 
 void FontData_free(FontData_t *fontData) {
@@ -294,34 +351,51 @@ void FontRenderer_free(FontRenderer_t *font) {
     // Renderer_free(font->renderer);    
     FontData_free(font->fontData);
     glDeleteVertexArrays(1, &font->vao);
-    IndexBuffer_free(&font->ib);
-    VertexBuffer_free(&font->vb);
+    IndexBuffer_free(font->ib);
+    free(font->ib);
+    VertexBuffer_free(font->vb);
     free(font->instanceData);
     free(font);
 }
 
-void FontRenderer_drawString(FontRenderer_t *font, char *text) {
+void FontRenderer_drawString(FontRenderer_t *font, char *text, float renderX, float renderY) {
     FontRenderer_bind(font);
 
-    size_t bufSize = (strlen(text) * sizeof(GlyphInstance_t));
-    GlyphInstance_t bufData[bufSize];
-
-    for (int i = 0; i < strlen(text); i++) {
+    size_t charCount = strlen(text);
+    GlyphInstance_t bufData[charCount];
+    size_t bufSize = sizeof(bufData);
+    // setup instance buffer data
+    float cursorAdvance = 0.0f;
+    for (int i = 0; i < charCount; i++) {
 
         char c = text[i];
         if (c < GLYPH_FIRST || c > GLYPH_LAST) {
             c = '?';
         }
 
-        bufData[i] = font->instanceData[i - GLYPH_FIRST];
-    }
+        int inst = (int) c - GLYPH_FIRST;
+        // printf("getting instance data index %u for char %c (%u)\n", inst, c, c);
+        bufData[i] = font->instanceData[inst];
+        bufData[i].pos[0] = renderX + cursorAdvance;
+        bufData[i].pos[1] = renderY;
+        cursorAdvance += bufData[i].advance;
 
+    }
+    // pass buffer data
+    glBindBuffer(GL_ARRAY_BUFFER, font->instanceVb->vbo);
+    glBufferData(GL_ARRAY_BUFFER, bufSize, bufData, GL_STREAM_DRAW);
+
+
+    // pass matricies
+    glUniform1i(glGetUniformLocation(font->shader, "textureIn"), 0);
+    glUniformMatrix4fv(glGetUniformLocation(font->shader, "projection"), 1, GL_FALSE, (float*) &font->context->projectionMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(font->shader, "model"), 1, GL_FALSE, (float*) MatrixStack_peek(font->context->matrixStack));
+
+    // bind textures
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font->fontData->fontAtlas.texId);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, bufSize, bufData);
-    // our buf size is the same as the amount of characters we are drawing, so that is how many instaces we need
-    // which makes it safe to pass bufSize as instanceCount
-    // glDrawElementsInstanced(GL_TRIANGLES, font->ib.indexCount, GL_UNSIGNED_INT, NULL, bufSize);
+
+    glDrawElementsInstanced(GL_TRIANGLES, font->ib->indexCount, GL_UNSIGNED_INT, NULL, charCount);
 }
 
 size_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text) {

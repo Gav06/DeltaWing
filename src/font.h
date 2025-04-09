@@ -36,7 +36,11 @@ typedef struct FontData {
 
 // intermediary struct for data that will be passed to the instancing VBO
 typedef struct GlyphInstance {
-    // char x, y as UV
+    // position of the instanced glyph
+    vec2 pos;
+    // actual size of glyph
+    vec2 size;
+    // top left of UV space for glyph
     vec2 uv;
     // char width, height as UV
     vec2 uvSize;
@@ -58,11 +62,13 @@ typedef struct FontRenderer {
 
     // renderer variables
     GLuint vao;
-    VertexBuffer_t vb;
-    IndexBuffer_t ib;
+    VertexBuffer_t *vb;
+    VertexBuffer_t *instanceVb;
+    IndexBuffer_t *ib;
     GLuint shader;
 
     // our glyph information, for our instancing vbo
+    size_t instanceDataSize;
     GlyphInstance_t *instanceData;
 } FontRenderer_t;
 
@@ -72,7 +78,7 @@ void FontRenderer_bind(FontRenderer_t *font);
 
 void FontRenderer_free(FontRenderer_t *font);
 
-void FontRenderer_drawString(FontRenderer_t *font, char *text);
+void FontRenderer_drawString(FontRenderer_t *font, char *text, float renderX, float renderY);
 
 size_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text);
 

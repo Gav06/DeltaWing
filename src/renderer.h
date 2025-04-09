@@ -66,7 +66,7 @@ typedef struct VertexBuffer {
     // vertex buffer object
     GLuint vbo;
     // sizeof whichever vertex format we decide to go with
-    size_t vertexSize;
+    size_t stride;
     // number of defined verticies in our buffer
     size_t vertexCount;
     // The maximum amount of verticies that can be held in the allocated buffer
@@ -154,7 +154,7 @@ void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t dataSize, uin
 
 void IndexBuffer_free(IndexBuffer_t *ib);
 
-void VertexBuffer_init(VertexBuffer_t *vb, size_t vertexSize, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData);
+void VertexBuffer_init(VertexBuffer_t *vb, size_t stride, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData);
 
 void VertexBuffer_free(VertexBuffer_t *vb);
 

@@ -201,21 +201,13 @@ void DW_render(float partialTicks) {
 
     glDisable(GL_CULL_FACE);
 
-    MatrixStack_pushMatrix(context->matrixStack);
-
-    MatrixStack_translate(context->matrixStack, (vec3) { centerX, centerY, 0.0f });
-    MatrixStack_rotate(context->matrixStack, glfwGetTime(), (vec3) { 0.0f, 0.0f, 1.0f });
-    MatrixStack_translate(context->matrixStack, (vec3) { -centerX, -centerY, 0.0f });
 
 
     glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->fontAtlas.texId);
     Renderer_bind(testRenderer);
     Renderer_draw(testRenderer);
 
-    MatrixStack_popMatrix(context->matrixStack);
-
-
-    FontRenderer_drawString(fontRenderer, "gavin rules");
+    FontRenderer_drawString(fontRenderer, "gavin", 0.0f, 0.0f);
 }
 
 int main(int argc, char **argv) {
