@@ -27,6 +27,7 @@ Renderer_t *dynRenderer;
 FontRenderer_t *fontRenderer;
 
 uint32_t fps;
+uint32_t tps;
 
 int32_t cameraX = 0;
 int32_t cameraY = 0;
@@ -194,20 +195,9 @@ void DW_render(float partialTicks) {
     if (currentScene != NULL) {
         currentScene->render(dynRenderer, context);
     }
-
-    float centerX = DISPLAY_WIDTHF / 2.0f;
-    float centerY = DISPLAY_HEIGHTF / 2.0f;
-
-
-    glDisable(GL_CULL_FACE);
-
-
-
-    glBindTexture(GL_TEXTURE_2D, fontRenderer->fontData->fontAtlas.texId);
-    Renderer_bind(testRenderer);
-    Renderer_draw(testRenderer);
-
-    FontRenderer_drawString(fontRenderer, "gavin", 0.0f, 0.0f);
+    
+    FontRenderer_drawString(fontRenderer, "austin chopped asf", 50.0f, 0.0f);
+    FontRenderer_drawString(fontRenderer, "lel", 200.0f, 100.0f);
 }
 
 int main(int argc, char **argv) {
@@ -256,9 +246,12 @@ int main(int argc, char **argv) {
         
         // FPS counter
         if (currentTime - lastFPSTime >= 1000) {
-            printf("FPS: %u, Ticks: %u\n", frames, ticks);
+            fps = frames;
+            tps = ticks;
+
             frames = 0;
             ticks = 0;
+
             lastFPSTime = currentTime;
         }
 

@@ -259,7 +259,6 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
 
     // Create glyph instance data
     size_t instanceSize = sizeof(GlyphInstance_t);
-    printf("charCount %lu\n", font->fontData->charCount);
     font->instanceDataSize = instanceSize * font->fontData->charCount;
     font->instanceData = malloc(font->instanceDataSize);
 
@@ -379,7 +378,6 @@ void FontRenderer_drawString(FontRenderer_t *font, char *text, float renderX, fl
         bufData[i].pos[0] = renderX + cursorAdvance;
         bufData[i].pos[1] = renderY;
         cursorAdvance += bufData[i].advance;
-
     }
     // pass buffer data
     glBindBuffer(GL_ARRAY_BUFFER, font->instanceVb->vbo);
@@ -402,9 +400,8 @@ size_t FontRenderer_getStringWidth(FontRenderer_t *font, char *text) {
     size_t totalWidth = 0;
 
     for (int i = 0; i < strlen(text); i++) {
-        totalWidth += font->instanceData[i - GLYPH_FIRST].advance;
+        totalWidth += font->instanceData[text[i] - GLYPH_FIRST].advance;
     }
-
     return totalWidth;
 }
  
