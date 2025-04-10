@@ -1,7 +1,7 @@
 # DeltaWing
-DeltaWing is (eventually) a game written in C, using OpenGL and CGLM compiled for Windows and Linux using GCC/MinGW and CMake. I am using this project to learn C and OpenGL, and also an attempt to write my own game engine.
+DeltaWing is (eventually) a game written in C, using [GLAD](https://glad.dav1d.de/) to load OpenGL, [GLFW](https://www.glfw.org/) to manage windows, the [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h) header for image loading, and [CGLM](https://github.com/recp/cglm) (C port of GLM) for math utilities. This is compiled for Windows and Linux using GCC/MinGW and CMake. This project is mainly for me to learn C and the ins and outs of modern OpenGL.
 
 ## Idea
-I plan for the game to be a 2D sidescrolling airplane shooter, with gameplay inspired by the old flash game [awesome planes](https://archive.org/details/awesomeplanes_flash).
+I plan for the game to be a 2D sidescrolling airplane shooter, with gameplay inspired by the old flash game [Awesome Planes](https://archive.org/details/awesomeplanes_flash).
 Possibly retro-style vector graphics, and post-processing to look like an old CRT, similar to [Superhot's menu](https://interfaceingame.com/screenshots/superhot-main-menu/), but over the game.
 
