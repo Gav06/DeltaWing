@@ -3,20 +3,16 @@
 
 #include "../renderer.h"
 
-void MainMenu_init() {
-    
-}
+void MainMenu_init();
 
-void MainMenu_tick() {
+void MainMenu_tick();
 
-}
+void MainMenu_render();
 
-void MainMenu_render(Renderer_t *renderer, Context_t *context) {
+void MainMenu_exit();
 
-}
+void MainMenu_onKey(int key, int scancode, int action, int mods);
 
-void MainMenu_exit() {
-
-}
+void MainMenu_onClick(int button, int action, int mods);
 
 #endif

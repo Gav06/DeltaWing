@@ -14,7 +14,7 @@
 #define MAX_MATRIX_STACK_SIZE 127
 
 // Used for texture loading
-typedef struct Texture {
+typedef struct {
     uint32_t width;
     uint32_t height;
     uint8_t channels;
@@ -28,12 +28,12 @@ Texture_t DW_loadTexture(char* texPath);
  * Mainly used for the model/transformation matrix in our case,
  * Similar to the old glPushMatrix library functions
  */ 
-typedef struct MatrixStack {
+typedef struct {
     CGLM_ALIGN_MAT mat4 array[MAX_MATRIX_STACK_SIZE];
     int top;
 } MatrixStack_t;
 
-typedef enum VertexFormat {
+typedef enum {
     // pos, color
     VERTEX_FORMAT_PC,
     // pos, tex
@@ -62,7 +62,7 @@ typedef struct {
 
 size_t VertexFormat_sizeOf(VertexFormat_e format);
 
-typedef struct VertexBuffer {
+typedef struct {
     // vertex buffer object
     GLuint vbo;
     // sizeof whichever vertex format we decide to go with
@@ -73,14 +73,14 @@ typedef struct VertexBuffer {
     size_t bufferSize;
 } VertexBuffer_t;
 
-typedef struct IndexBuffer {
+typedef struct {
     // element buffer object
     GLuint ibo;
     size_t indexCount;
     uint32_t *indexData;
 } IndexBuffer_t;
 
-typedef struct Context {
+typedef struct {
     // delta time variable
     float partialTicks;
     // display size
@@ -96,7 +96,7 @@ typedef struct Context {
  * Renderer struct, supports dynamic and static rendering, as well
  * as different vertex formats.
  */
-typedef struct Renderer {
+typedef struct {
     // This is usually GL_TRIANGLES
     GLenum primitive;
     GLuint shader;

@@ -257,6 +257,7 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath,
     // load chars and font data
     font->fontData = (FontData_t*) malloc(sizeof(FontData_t));
     FontRenderer_loadData(fontPath, font->fontData);
+    font->charHeight = font->fontData->charData[0].height * scaleFactor;
 
     // Create glyph instance data
     size_t instanceSize = sizeof(GlyphInstance_t);

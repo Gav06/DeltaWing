@@ -1,18 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "renderer.h"
-#include "engine.h"
-#include "input.h"
-#include "scenes.h"
-#include "font.h"
+#include "globals.h"
 #include "util.h"
-
-#define DISPLAY_WIDTH 1280
-#define DISPLAY_HEIGHT 720
-
-#define DISPLAY_WIDTHF 1280.0f
-#define DISPLAY_HEIGHTF 720.0f
+#include "scenes.h"
 
 #define TARGET_TPS 30
 #define MS_PER_TICK (1000 / TARGET_TPS)
@@ -20,11 +11,6 @@
 #define MAX_DELTA_TIME 250
 
 GLFWwindow *window;
-Input_t *input;
-
-Context_t *context;
-Renderer_t *dynRenderer;
-FontRenderer_t *fontRenderer;
 
 uint32_t fps;
 uint32_t tps;
@@ -34,8 +20,6 @@ int32_t cameraY = 0;
 
 
 // Our scene defaults to the main menu
-Scene_t *currentScene = &Scene_MainMenu;
-
 
 void DW_GLFWerrorCallback(int error, const char *description) {
     fprintf(stderr, "Error: %d %s\n", error, description);
@@ -49,12 +33,16 @@ void DW_keyCallback(GLFWwindow *window, int key, int scancode, int action, int m
     if (key >= 32 && key <= 348) {
         input->keyStates[key] = action; 
         input->currentMods = mods;
+
+        if (currentScene != NULL) currentScene->onKey(key, scancode, action, mods);
     }
 }
 
 void DW_mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
     if (0 <= button) {
         input->mouseState[button] = action;
+
+        if (currentScene != NULL) currentScene->onClick(button, action, mods);
     }
 }
 
@@ -148,6 +136,7 @@ void DW_initGame() {
     input = calloc(1, sizeof(Input_t));
 
     // Init default scene
+    currentScene = &Scene_MainMenu;
     if (currentScene != NULL) currentScene->init();
 
     testRenderer = malloc(sizeof(Renderer_t));
@@ -169,13 +158,15 @@ void DW_initGame() {
     IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
 
     Renderer_init(testRenderer, context, VERTEX_FORMAT_PT,vb, ib);
-
 }
 
 void DW_exitGame() {
+    if (!glfwWindowShouldClose(window)) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
     // Free up vram and heap
     FontRenderer_free(fontRenderer);
-    // Renderer_free(dynRenderer);
     Context_free(context);
 
     free(input);
@@ -193,14 +184,8 @@ void DW_render(float partialTicks) {
 
     // draw current scene
     if (currentScene != NULL) {
-        currentScene->render(dynRenderer, context);
+        currentScene->render();
     }
-    
-    FontRenderer_setColor(fontRenderer, (vec4) { 1.0f, 0.0f, 0.0f, 0.5f });
-    FontRenderer_drawString(fontRenderer, "austin chopped asf", 50.0f, 0.0f);
-    FontRenderer_setColor(fontRenderer, (vec4) { 1.0f, 0.0f, 1.0f, 1.0f });
-
-    FontRenderer_drawString(fontRenderer, "lel", 200.0f, 100.0f);
 }
 
 int main(int argc, char **argv) {
@@ -210,7 +195,6 @@ int main(int argc, char **argv) {
     DW_initGame();
 
     glfwShowWindow(window);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     uint64_t lastTime = DW_currentTimeMillis();
     uint64_t accumulator = 0;
@@ -219,7 +203,7 @@ int main(int argc, char **argv) {
     uint32_t frames = 0;
 
     // Game loop
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     while (!glfwWindowShouldClose(window)) {
         uint64_t currentTime = DW_currentTimeMillis();
         uint64_t deltaTime = currentTime - lastTime;

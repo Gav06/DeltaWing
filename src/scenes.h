@@ -8,7 +8,9 @@ Scene_t Scene_MainMenu = {
     .init = MainMenu_init,
     .tick = MainMenu_tick,
     .render = MainMenu_render,
-    .exit = MainMenu_exit
+    .exit = MainMenu_exit,
+    .onKey = MainMenu_onKey,
+    .onClick = MainMenu_onClick
 };
 
 

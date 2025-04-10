@@ -69,6 +69,8 @@ typedef struct FontRenderer {
 
     // value to scale up or down our quads
     float scaleFactor;
+    
+    float charHeight;
     // mutable color value
     vec4 color;
     // our glyph information, for our instancing vbo
