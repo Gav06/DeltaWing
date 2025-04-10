@@ -41,6 +41,8 @@ set( SOURCES
 	"src/globals.h"
 	"src/scenes/mainmenu.h"
 	"src/scenes/mainmenu.c"
+	"src/scenes/world.h"
+	"src/scenes/world.c"
 )
 add_executable(${PROJECT_NAME} ${SOURCES})
 

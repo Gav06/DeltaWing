@@ -1,8 +1,6 @@
 #ifndef MAINMENU_H
 #define MAINMENU_H
 
-#include "../renderer.h"
-
 void MainMenu_init();
 
 void MainMenu_tick();

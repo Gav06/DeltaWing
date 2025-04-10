@@ -13,6 +13,9 @@
 
 #define RELEASE_VERSION_STR "v0.1"
 
+Scene_t Scene_MainMenu;
+Scene_t Scene_World;
+
 Input_t *input;
 Context_t *context;
 Renderer_t *dynRenderer;
@@ -20,5 +23,7 @@ FontRenderer_t *fontRenderer;
 Scene_t *currentScene;
 
 void DW_exitGame();
+
+void DW_setScene(Scene_t *scene);
 
 #endif

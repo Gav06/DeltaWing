@@ -1,8 +1,8 @@
 #ifndef SCENES_H
 #define SCENES_H
 
-#include "engine.h"
 #include "scenes/mainmenu.h"
+#include "scenes/world.h"
 
 Scene_t Scene_MainMenu = {
     .init = MainMenu_init,
@@ -11,6 +11,15 @@ Scene_t Scene_MainMenu = {
     .exit = MainMenu_exit,
     .onKey = MainMenu_onKey,
     .onClick = MainMenu_onClick
+};
+
+Scene_t Scene_World = {
+    .init = World_init,
+    .tick = World_tick,
+    .render = World_render,
+    .exit = World_exit,
+    .onKey = World_onKey,
+    .onClick = World_onClick
 };
 
 

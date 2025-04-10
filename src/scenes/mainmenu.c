@@ -71,7 +71,7 @@ void MainMenu_onKey(int key, int scancode, int action, int mods) {
         case GLFW_KEY_ENTER:
             switch (selectionIndex) {
                 case 1:
-                
+                    DW_setScene(&Scene_World);
                     break;
                 case 2:
                     DW_exitGame();
