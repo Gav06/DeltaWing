@@ -142,7 +142,7 @@ void DW_initGame() {
     Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     // create font renderer
     fontRenderer = malloc(sizeof(FontRenderer_t));
-    FontRenderer_init(fontRenderer, context, "assets/roboto_mono.fnt");
+    FontRenderer_init(fontRenderer, context, "assets/roboto_mono.fnt", 0.5f);
 
     // Create keyboard input struct, with zeroes (false as default key states)
     input = calloc(1, sizeof(Input_t));
@@ -196,7 +196,10 @@ void DW_render(float partialTicks) {
         currentScene->render(dynRenderer, context);
     }
     
+    FontRenderer_setColor(fontRenderer, (vec4) { 1.0f, 0.0f, 0.0f, 0.5f });
     FontRenderer_drawString(fontRenderer, "austin chopped asf", 50.0f, 0.0f);
+    FontRenderer_setColor(fontRenderer, (vec4) { 1.0f, 0.0f, 1.0f, 1.0f });
+
     FontRenderer_drawString(fontRenderer, "lel", 200.0f, 100.0f);
 }
 

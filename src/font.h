@@ -67,12 +67,18 @@ typedef struct FontRenderer {
     IndexBuffer_t *ib;
     GLuint shader;
 
+    // value to scale up or down our quads
+    float scaleFactor;
+    // mutable color value
+    vec4 color;
     // our glyph information, for our instancing vbo
     size_t instanceDataSize;
     GlyphInstance_t *instanceData;
 } FontRenderer_t;
 
-void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath);
+void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath, float scaleFactor);
+
+void FontRenderer_setColor(FontRenderer_t *font, vec4 color);
 
 void FontRenderer_bind(FontRenderer_t *font);
 

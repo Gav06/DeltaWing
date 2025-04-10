@@ -229,14 +229,14 @@ void FontRenderer_loadData(char* fontPath, FontData_t *fontData) {
 }
 
 // Puts the data relative to the font atlas into the glyph instance. position is set later when rendering.
-GlyphInstance_t CharData_genGlyphInstance(FontData_t *fontData, int charIndex) {
+GlyphInstance_t CharData_genGlyphInstance(FontData_t *fontData, int charIndex, float scaleFactor) {
     CharData_t *charData = &fontData->charData[charIndex];
 
     GlyphInstance_t glyph;
 
     // size, pos is done later
     glm_vec2_copy(
-        (vec2) { (float) charData->width, (float) charData->height }, 
+        (vec2) { (float) charData->width * scaleFactor, (float) charData->height * scaleFactor}, 
         glyph.size
     );
 
@@ -244,15 +244,16 @@ GlyphInstance_t CharData_genGlyphInstance(FontData_t *fontData, int charIndex) {
     glm_vec2_copy(charData->uv, glyph.uv);
     glm_vec2_copy(charData->uvSize, glyph.uvSize);
 
-    glyph.advance = charData->width;
+    glyph.advance = charData->width * scaleFactor;
 
     return glyph;
 }
 
-void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath) {
+void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath, float scaleFactor) {
     // setup struct
     font->fontPath = fontPath;
     font->context = context;
+    font->scaleFactor = scaleFactor;
     // load chars and font data
     font->fontData = (FontData_t*) malloc(sizeof(FontData_t));
     FontRenderer_loadData(fontPath, font->fontData);
@@ -263,13 +264,14 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
     font->instanceData = malloc(font->instanceDataSize);
 
     for (size_t i = 0; i < font->fontData->charCount; i++) {
-        font->instanceData[i] = CharData_genGlyphInstance(font->fontData, i);
+        font->instanceData[i] = CharData_genGlyphInstance(font->fontData, i, scaleFactor);
     }
 
-    // create render pipeline
-    
-    font->shader = Shader_createProgram(DW_loadSourceFile("assets/font.vert"), DW_loadSourceFile("assets/font.frag"));
+    // our default render color is white
+    glm_vec4_copy((vec4) { 1.0f, 1.0f, 1.0f, 1.0f }, font->color);
 
+    // create render pipeline
+    font->shader = Shader_createProgram(DW_loadSourceFile("assets/font.vert"), DW_loadSourceFile("assets/font.frag"));
 
     // setup our vao
     glGenVertexArrays(1, &font->vao);
@@ -329,6 +331,10 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+void FontRenderer_setColor(FontRenderer_t *font, vec4 color) {
+    glm_vec4_copy(color, font->color);
+}
+
 void FontRenderer_bind(FontRenderer_t *font) {
     glUseProgram(font->shader);
     glBindVertexArray(font->vao);
@@ -386,6 +392,7 @@ void FontRenderer_drawString(FontRenderer_t *font, char *text, float renderX, fl
 
     // pass matricies
     glUniform1i(glGetUniformLocation(font->shader, "textureIn"), 0);
+    glUniform4f(glGetUniformLocation(font->shader, "colorIn"), font->color[0], font->color[1], font->color[2], font->color[3]);
     glUniformMatrix4fv(glGetUniformLocation(font->shader, "projection"), 1, GL_FALSE, (float*) &font->context->projectionMatrix);
     glUniformMatrix4fv(glGetUniformLocation(font->shader, "model"), 1, GL_FALSE, (float*) MatrixStack_peek(font->context->matrixStack));
 
