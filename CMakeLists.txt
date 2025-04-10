@@ -43,6 +43,8 @@ set( SOURCES
 	"src/scenes/mainmenu.c"
 	"src/scenes/world.h"
 	"src/scenes/world.c"
+	"src/entities/player.h"
+	"src/entities/player.c"
 )
 add_executable(${PROJECT_NAME} ${SOURCES})
 

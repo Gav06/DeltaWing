@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 
 const char* DW_loadSourceFile(const char *filePath) {
@@ -31,7 +32,7 @@ const char* DW_loadSourceFile(const char *filePath) {
     textBuf[fileSize] = '\0';
 
     if (bytesRead < fileSize) {
-        fprintf(stderr, "Error: Failed reading source file %s bytesRead: %lu fileSize: %u\n", filePath, bytesRead, fileSize);
+        fprintf(stderr, "Error: Failed reading source file %s bytesRead: %u fileSize: %u\n", filePath, bytesRead, fileSize);
         free(textBuf);
         fclose(file);
         return NULL;
@@ -53,10 +54,12 @@ int64_t DW_currentTimeMillis() {
 }
 
 // Sleep function that supports compilation across platforms
-    #include <unistd.h>
-
+#include <unistd.h>
 
 void DW_sleepMillis(uint32_t ms) {
-
     usleep(ms * 1000); // usleep takes microseconds
+}
+
+float DW_lerp(float then, float now, float delta) {
+    return then + (now - then) * delta;
 }

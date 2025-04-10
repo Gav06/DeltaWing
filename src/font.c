@@ -358,7 +358,6 @@ void FontRenderer_free(FontRenderer_t *font) {
     FontData_free(font->fontData);
     glDeleteVertexArrays(1, &font->vao);
     IndexBuffer_free(font->ib);
-    free(font->ib);
     VertexBuffer_free(font->vb);
     free(font->instanceData);
     free(font);

@@ -102,8 +102,8 @@ typedef struct {
     GLuint shader;
 
     VertexFormat_e vertexFormat;
-    VertexBuffer_t vb;
-    IndexBuffer_t ib;
+    VertexBuffer_t *vb;
+    IndexBuffer_t *ib;
     GLuint vao;
 
     GLint projectionLoc;
@@ -162,7 +162,7 @@ bool Renderer_checkBound(Renderer_t *renderer);
 
 void Renderer_bind(Renderer_t *renderer);
 
-void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, VertexBuffer_t vb, IndexBuffer_t ib);
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, VertexBuffer_t *vb, IndexBuffer_t *ib);
 
 void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size);
 

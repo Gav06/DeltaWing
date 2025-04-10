@@ -18,6 +18,7 @@ uint32_t tps;
 int32_t cameraX = 0;
 int32_t cameraY = 0;
 
+bool running = true;
 
 // Our scene defaults to the main menu
 
@@ -157,10 +158,14 @@ void DW_initGame() {
     IndexBuffer_t ib;
     IndexBuffer_init(&ib, 6, sizeof(indicies), indicies);
 
-    Renderer_init(testRenderer, context, VERTEX_FORMAT_PT,vb, ib);
+    Renderer_init(testRenderer, context, VERTEX_FORMAT_PT, &vb, &ib);
 }
 
 void DW_exitGame() {
+    running = false;
+}
+
+void DW_cleanup() {
     if (!glfwWindowShouldClose(window)) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
@@ -186,6 +191,7 @@ void DW_render(float partialTicks) {
     if (currentScene != NULL) {
         currentScene->render();
     }
+
 }
 
 int main(int argc, char **argv) {
@@ -204,7 +210,7 @@ int main(int argc, char **argv) {
 
     // Game loop
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-    while (!glfwWindowShouldClose(window)) {
+    while (running) {
         uint64_t currentTime = DW_currentTimeMillis();
         uint64_t deltaTime = currentTime - lastTime;
         lastTime = currentTime;
@@ -240,15 +246,19 @@ int main(int argc, char **argv) {
             ticks = 0;
 
             lastFPSTime = currentTime;
+            printf("FPS %d TPS %d\n", fps, tps);
+
         }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        if (glfwWindowShouldClose(window)) running = false;
     }
 
     // This must be called before destroying our context because
     // We need some GL functions to free our VRAM
-    DW_exitGame();
+    DW_cleanup();
 
     glfwDestroyWindow(window);
     glfwTerminate();

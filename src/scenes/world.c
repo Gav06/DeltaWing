@@ -1,15 +1,30 @@
 #include "world.h"
 
-void World_init() {
+#include "../engine.h"
+#include "../entities/player.h"
 
+
+GameObj_t playerObj;
+Entity_t player = {
+    .init = Player_init,
+    .reset = Player_reset,
+    .tick = Player_tick,
+    .render = Player_render,
+    .kill = Player_kill
+};
+
+
+void World_init() {
+    player.init(&playerObj);
+    player.reset();
 }
 
 void World_tick() {
-
+    player.tick();
 }
 
 void World_render() {
-
+    player.render();
 }
 
 void World_exit() {

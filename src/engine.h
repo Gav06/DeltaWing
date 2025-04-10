@@ -2,7 +2,6 @@
 #define ENGINE_H
 
 #include <cglm/vec2.h>
-#include "renderer.h"
 
 typedef struct {
     void (*init)(void);
@@ -20,8 +19,17 @@ typedef struct {
 
 typedef struct {
     vec2 pos;
+    vec2 prevPos;
     vec2 velocity;
 } GameObj_t;
+
+typedef struct  {
+    void (*init)(GameObj_t *gameObj);
+    void (*reset)(void);
+    void (*tick)(void);
+    void (*render)(void);
+    void (*kill)(void);
+} Entity_t;
 
 // dynamic array for GameObjects to be added/removed at runtime in scenes
 typedef struct {

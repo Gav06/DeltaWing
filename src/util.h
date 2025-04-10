@@ -9,4 +9,6 @@ int64_t DW_currentTimeMillis();
 
 void DW_sleepMillis(uint32_t ms);
 
+float DW_lerp(float then, float now, float delta);
+
 #endif

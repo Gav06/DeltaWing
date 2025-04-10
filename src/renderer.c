@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stddef.h>
 
-#include "renderer.h"
 #include "util.h"
+#include "renderer.h"
 
 // our image loading library
 #define STB_IMAGE_IMPLEMENTATION
@@ -274,6 +274,7 @@ void IndexBuffer_init(IndexBuffer_t *ib, size_t indexCount, size_t bufferSize, u
 
 void IndexBuffer_free(IndexBuffer_t *ib) {
     glDeleteBuffers(1, &ib->ibo);
+    free(ib);
 }
 
 void VertexBuffer_init(VertexBuffer_t *vb, size_t stride, size_t vertexCount, size_t bufferSize, GLenum usage, void *vertexData) {
@@ -288,10 +289,11 @@ void VertexBuffer_init(VertexBuffer_t *vb, size_t stride, size_t vertexCount, si
 
 void VertexBuffer_free(VertexBuffer_t *vb) {
     glDeleteBuffers(1, &vb->vbo);
+    free(vb);
 }
 
 // This is assuming the VBO and IBO have already been initialized and had data passed to them.
-void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, VertexBuffer_t vb, IndexBuffer_t ib) {
+void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e format, VertexBuffer_t *vb, IndexBuffer_t *ib) {
     renderer->vertexFormat = format;
     renderer->context = context;
     renderer->shader = Shader_defaultShaderPrograms_m[format];
@@ -306,21 +308,21 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
     glBindVertexArray(renderer->vao);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vb.stride, (void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vb->stride, (void*) 0);
 
     glEnableVertexAttribArray(1);
     switch (format) {
     case VERTEX_FORMAT_PC:
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.stride, (void*) offsetof(Vertex_PC, color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb->stride, (void*) offsetof(Vertex_PC, color));
         break;
     case VERTEX_FORMAT_PT:
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb.stride, (void*) offsetof(Vertex_PT, uv));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb->stride, (void*) offsetof(Vertex_PT, uv));
         break;
     case VERTEX_FORMAT_PCT:
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb.stride, (void*) offsetof(Vertex_PCT, color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_TRUE, vb->stride, (void*) offsetof(Vertex_PCT, color));
 
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vb.stride, (void*) offsetof(Vertex_PCT, uv));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vb->stride, (void*) offsetof(Vertex_PCT, uv));
         break;
     default:
         fprintf(stderr, "Error: Attempted to create Renderer with unknown Vertex format.\n");
@@ -343,8 +345,8 @@ void Renderer_init(Renderer_t *renderer, Context_t *context, VertexFormat_e form
 
 void Renderer_bind(Renderer_t *renderer) {
     glBindVertexArray(renderer->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vb.vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ib.ibo);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vb->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ib->ibo);
     glUseProgram(renderer->shader);
 }
 
@@ -355,16 +357,16 @@ void Renderer_drawIndexed(Renderer_t *renderer, int start, size_t size) {
     
     glUniformMatrix4fv(renderer->projectionLoc, 1, GL_FALSE, (float*) &renderer->context->projectionMatrix);
     glUniformMatrix4fv(renderer->modelLoc, 1, GL_FALSE, (float*) MatrixStack_peek(renderer->context->matrixStack));
-    glDrawElements(renderer->primitive, renderer->ib.indexCount, GL_UNSIGNED_INT, NULL);
+    glDrawElements(renderer->primitive, renderer->ib->indexCount, GL_UNSIGNED_INT, NULL);
 }
 
 void Renderer_draw(Renderer_t *renderer) {
-    Renderer_drawIndexed(renderer, 0, renderer->vb.vertexCount);
+    Renderer_drawIndexed(renderer, 0, renderer->vb->vertexCount);
 }
 
 void Renderer_free(Renderer_t *renderer) {
-    IndexBuffer_free(&renderer->ib);
-    VertexBuffer_free(&renderer->vb);
+    IndexBuffer_free(renderer->ib);
+    VertexBuffer_free(renderer->vb);
     glDeleteVertexArrays(1, &renderer->vao);
     free(renderer);
     renderer = NULL;
