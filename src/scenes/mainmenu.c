@@ -5,10 +5,9 @@
 // amount of menu options
 #define SELECTION_MAX 2
 
-char* titleText = "DeltaWing";
+char* titleText = "mcon529 da boss";
 uint32_t titleWidth;
 uint8_t selectionIndex = 1;
-
 
 void MainMenu_init() {
     titleWidth = FontRenderer_getStringWidth(fontRenderer, titleText);
