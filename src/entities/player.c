@@ -1,6 +1,5 @@
 #include "player.h"
 
-#include "../globals.h"
 #include "../util.h"
 
 VertexBuffer_t *vb;

@@ -1,9 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+#define DEFINE_GLOBALS
 #include "globals.h"
+
 #include "util.h"
 #include "scenes.h"
+
+
 
 #define TARGET_TPS 30
 #define MS_PER_TICK (1000 / TARGET_TPS)
@@ -127,20 +132,20 @@ void DW_initGame() {
     Shader_compileDefaultShaders();
 
     // init render context
-    context = malloc(sizeof(Context_t));
+    context = (Context_t*) malloc(sizeof(Context_t));
     Context_init(context, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     // create font renderer
-    fontRenderer = malloc(sizeof(FontRenderer_t));
+    fontRenderer = (FontRenderer_t*) malloc(sizeof(FontRenderer_t));
     FontRenderer_init(fontRenderer, context, "assets/roboto_mono.fnt", 0.5f);
 
     // Create keyboard input struct, with zeroes (false as default key states)
-    input = calloc(1, sizeof(Input_t));
+    input = (Input_t*) calloc(1, sizeof(Input_t));
 
     // Init default scene
     currentScene = &Scene_MainMenu;
     if (currentScene != NULL) currentScene->init();
 
-    testRenderer = malloc(sizeof(Renderer_t));
+    testRenderer = (Renderer_t*) malloc(sizeof(Renderer_t));
 
     Vertex_PT verticies[] = {
         { { left, bottom, 0.0f }, { 0.0f, 0.0f } },

@@ -13,6 +13,10 @@
 
 #define RELEASE_VERSION_STR "v0.1"
 
+
+#ifdef DEFINE_GLOBALS
+
+// defined in scenes.h
 Scene_t Scene_MainMenu;
 Scene_t Scene_World;
 
@@ -21,6 +25,17 @@ Context_t *context;
 Renderer_t *dynRenderer;
 FontRenderer_t *fontRenderer;
 Scene_t *currentScene;
+
+#else
+extern Scene_t Scene_MainMenu;
+extern Scene_t Scene_World;
+
+extern Input_t *input;
+extern Context_t *context;
+extern Renderer_t *dynRenderer;
+extern FontRenderer_t *fontRenderer;
+extern Scene_t *currentScene;
+#endif
 
 void DW_exitGame();
 

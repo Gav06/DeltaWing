@@ -19,7 +19,6 @@ void MainMenu_tick() {
 }
 
 void MainMenu_render() {
-    FontRenderer_bind(fontRenderer);
     FontRenderer_setColor(fontRenderer, (vec4) { 1.0f, 0.0f, 0.0f, 1.0f });
     FontRenderer_drawString(fontRenderer, titleText, 
         (DISPLAY_WIDTHF / 2.0f) - (titleWidth / 2.0f),
@@ -83,5 +82,5 @@ void MainMenu_onKey(int key, int scancode, int action, int mods) {
 }
 
 void MainMenu_onClick(int button, int action, int mods) {
-
+    
 }

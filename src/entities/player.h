@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "../engine.h"
+#include "../globals.h"
 
 void Player_init(GameObj_t *gameObj);
 
