@@ -272,7 +272,7 @@ void FontRenderer_init(FontRenderer_t *font, Context_t *context, char* fontPath,
     glm_vec4_copy((vec4) { 1.0f, 1.0f, 1.0f, 1.0f }, font->color);
 
     // create render pipeline
-    font->shader = Shader_createProgram(DW_loadSourceFile("assets/font.vert"), DW_loadSourceFile("assets/font.frag"));
+    font->shader = Shader_createProgram(DW_loadSourceFile("assets/font.vsh"), DW_loadSourceFile("assets/font.fsh"));
 
     // setup our vao
     glGenVertexArrays(1, &font->vao);

@@ -220,13 +220,13 @@ void Shader_compileDefaultShaders() {
         switch (i)
         {
         case VERTEX_FORMAT_PC:
-            prog = Shader_createProgram(DW_loadSourceFile("assets/pc.vert"), DW_loadSourceFile("assets/pc.frag"));
+            prog = Shader_createProgram(DW_loadSourceFile("assets/pc.vsh"), DW_loadSourceFile("assets/pc.fsh"));
             break;
         case VERTEX_FORMAT_PT:
-            prog = Shader_createProgram(DW_loadSourceFile("assets/pt.vert"), DW_loadSourceFile("assets/pt.frag"));
+            prog = Shader_createProgram(DW_loadSourceFile("assets/pt.vsh"), DW_loadSourceFile("assets/pt.fsh"));
             break;
         case VERTEX_FORMAT_PCT:
-            prog = Shader_createProgram(DW_loadSourceFile("assets/pct.vert"), DW_loadSourceFile("assets/pct.frag"));
+            prog = Shader_createProgram(DW_loadSourceFile("assets/pct.vsh"), DW_loadSourceFile("assets/pct.fsh"));
             break;
         default:
             fprintf(stderr, "Error: Attempting to compile default shader for invalid vertex format.\n");

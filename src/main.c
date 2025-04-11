@@ -195,8 +195,8 @@ void DW_render(float partialTicks) {
 }
 
 int main(int argc, char **argv) {
-    if (DW_initWindow())
-        return 1;
+
+    if (DW_initWindow()) return 1;
     
     DW_initGame();
 
