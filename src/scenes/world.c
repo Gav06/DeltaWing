@@ -48,7 +48,7 @@ void World_tick() {
 }
 
 void World_render() {
-    glClearColor(0.361f, 0.835f, 1.f, 1.0f);
+    glClearColor(0.361f, 0.835f, 0.917f, 1.0f);
 
     // setup our camera matricies for the world
     updateCamera();
@@ -56,6 +56,9 @@ void World_render() {
 
     // restore our orthogonal matrix for 2d overlay rendering
     glm_mat4_copy(overlayMatrix, context->projectionMatrix);
+
+    FontRenderer_setColor(fontRenderer, GLM_VEC4_ONE);
+    FontRenderer_drawString(fontRenderer, "Jump through the pipes", 2.0f, 2.0f);
 }
 
 void World_exit() {

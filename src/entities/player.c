@@ -35,27 +35,22 @@ void Player_reset() {
     glm_vec2_copy(GLM_VEC2_ZERO, gameObj->pos);
 }
 
+// we will store our player's previous velocity so the jump upwards is *somewhat* smooth
+float prevYVel = 0.0f;
+
 void Player_tick() {
     // apply gravity
+    prevYVel = gameObj->velocity[1];
     if (gameObj->velocity[1] > -GRAVITY_ACCEL) {
         glm_vec2_add((vec2) { 0.f, -GRAVITY_ACCEL / (TARGET_TPS / 2) }, gameObj->velocity, gameObj->velocity);
     }
-    // float velX = 0.0f;
-    // float velY = 0.0f;
-
-    // if (DW_isKeyDown(input, GLFW_KEY_W)) velY -= 10.0f;
-    // if (DW_isKeyDown(input, GLFW_KEY_S)) velY += 10.0f;
-    // if (DW_isKeyDown(input, GLFW_KEY_A)) velX -= 10.0f;
-    // if (DW_isKeyDown(input, GLFW_KEY_D)) velX += 10.0f;
-    // glm_vec2_copy((vec2) { velX, velY}, gameObj->velocity);
-
-
 
     float newX = gameObj->pos[0] + gameObj->velocity[0];
     float newY = gameObj->pos[1] + gameObj->velocity[1];
     glm_vec2_copy(gameObj->pos, gameObj->prevPos);
     glm_vec2_copy((vec2) { newX, newY }, gameObj->pos);
 }
+
 
 void Player_render() {
     MatrixStack_pushMatrix(context->matrixStack);
@@ -66,7 +61,7 @@ void Player_render() {
     // calculate our rotation angle
     float angle = -M_PI_2;
 
-    float yVel = gameObj->velocity[1];
+    float yVel = DW_lerp(prevYVel, gameObj->velocity[1], context->partialTicks);
     float angleAdd = fmax(fmin(yVel * 5.0f, 90.0f), -90.0f);
     angle += (angleAdd * (M_PI / 180));
 

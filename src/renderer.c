@@ -6,7 +6,7 @@
 
 // our image loading library
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
 
 size_t VertexFormat_sizeOf(VertexFormat_e format) {
     if (format < 0 || format >= VERTEX_FORMAT_TOTAL) {
