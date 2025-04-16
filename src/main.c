@@ -1,19 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
 #define DEFINE_GLOBALS
 #include "globals.h"
 
 #include "util.h"
 #include "scenes.h"
-
-
-
-#define TARGET_TPS 30
-#define MS_PER_TICK (1000 / TARGET_TPS)
-
-#define MAX_DELTA_TIME 250
 
 GLFWwindow *window;
 
@@ -213,8 +205,8 @@ int main(int argc, char **argv) {
     uint32_t ticks = 0;
     uint32_t frames = 0;
 
+    glClearColor(.1f, .1f, .1f, 1.0f);
     // Game loop
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     while (running) {
         uint64_t currentTime = DW_currentTimeMillis();
         uint64_t deltaTime = currentTime - lastTime;

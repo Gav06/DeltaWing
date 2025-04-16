@@ -2,6 +2,9 @@
 
 #include "../util.h"
 
+
+#define GRAVITY_ACCEL 9.81f
+
 VertexBuffer_t *vb;
 IndexBuffer_t *ib;
 Renderer_t *playerRenderer;
@@ -15,9 +18,9 @@ void Player_init(GameObj_t *gameObjIn) {
     ib = malloc(sizeof(IndexBuffer_t));
     size_t vSize = VertexFormat_sizeOf(VERTEX_FORMAT_PC);
     Vertex_PC verticies[] = {
-        (Vertex_PC) { { -20.0f, 20.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f} },
-        (Vertex_PC) { { 0.0f, -20.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }, 
-        (Vertex_PC) { { 20.0f, 20.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+        (Vertex_PC) { { -20.0f, -20.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f} },
+        (Vertex_PC) { { 0.0f, 25.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }, 
+        (Vertex_PC) { { 20.0f, -20.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }
     };
 
     VertexBuffer_init(vb, vSize, 3, 3 * vSize, GL_STATIC_DRAW, verticies);
@@ -29,18 +32,22 @@ void Player_init(GameObj_t *gameObjIn) {
 }
 
 void Player_reset() {
-    glm_vec2_copy((vec2) { DISPLAY_WIDTHF / 2.0f, DISPLAY_HEIGHTF / 2.0f }, gameObj->pos);
+    glm_vec2_copy(GLM_VEC2_ZERO, gameObj->pos);
 }
 
 void Player_tick() {
-    float velX = 0.0f;
-    float velY = 0.0f;
+    // apply gravity
+    if (gameObj->velocity[1] > -GRAVITY_ACCEL) {
+        glm_vec2_add((vec2) { 0.f, -GRAVITY_ACCEL / (TARGET_TPS / 2) }, gameObj->velocity, gameObj->velocity);
+    }
+    // float velX = 0.0f;
+    // float velY = 0.0f;
 
-    if (DW_isKeyDown(input, GLFW_KEY_W)) velY -= 10.0f;
-    if (DW_isKeyDown(input, GLFW_KEY_S)) velY += 10.0f;
-    if (DW_isKeyDown(input, GLFW_KEY_A)) velX -= 10.0f;
-    if (DW_isKeyDown(input, GLFW_KEY_D)) velX += 10.0f;
-    glm_vec2_copy((vec2) { velX, velY}, gameObj->velocity);
+    // if (DW_isKeyDown(input, GLFW_KEY_W)) velY -= 10.0f;
+    // if (DW_isKeyDown(input, GLFW_KEY_S)) velY += 10.0f;
+    // if (DW_isKeyDown(input, GLFW_KEY_A)) velX -= 10.0f;
+    // if (DW_isKeyDown(input, GLFW_KEY_D)) velX += 10.0f;
+    // glm_vec2_copy((vec2) { velX, velY}, gameObj->velocity);
 
 
 
@@ -56,6 +63,18 @@ void Player_render() {
     float renderX = DW_lerp(gameObj->prevPos[0], gameObj->pos[0], context->partialTicks);
     float renderY = DW_lerp(gameObj->prevPos[1], gameObj->pos[1], context->partialTicks);
 
+    // calculate our rotation angle
+    float angle = -M_PI_2;
+
+    float yVel = gameObj->velocity[1];
+    float angleAdd = fmax(fmin(yVel * 5.0f, 90.0f), -90.0f);
+    angle += (angleAdd * (M_PI / 180));
+
+    MatrixStack_translate(context->matrixStack, (vec3) { renderX, renderY, 0.0f });
+    MatrixStack_rotate(context->matrixStack, angle, (vec3) { 0.0f, 0.0f, 1.0f });
+    MatrixStack_translate(context->matrixStack, (vec3) { -renderX, -renderY, 0.0f });
+
+
     MatrixStack_translate(context->matrixStack, (vec3) { renderX, renderY, 0.0f });
     Renderer_bind(playerRenderer);
     Renderer_draw(playerRenderer);
@@ -68,3 +87,4 @@ void Player_kill() {
     IndexBuffer_free(ib);
     VertexBuffer_free(vb);
 }
+

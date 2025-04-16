@@ -13,6 +13,11 @@
 
 #define RELEASE_VERSION_STR "v0.1"
 
+#define TARGET_TPS 30
+#define MS_PER_TICK (1000 / TARGET_TPS)
+
+#define MAX_DELTA_TIME 250
+
 
 #ifdef DEFINE_GLOBALS
 
