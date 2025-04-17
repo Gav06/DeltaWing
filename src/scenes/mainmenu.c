@@ -5,7 +5,7 @@
 // amount of menu options
 #define SELECTION_MAX 2
 
-char* titleText = "sample text!";
+char* titleText = "DeltaWing, flappy clone";
 uint32_t titleWidth;
 uint8_t selectionIndex = 1;
 

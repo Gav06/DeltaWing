@@ -116,7 +116,6 @@ const float top = (DISPLAY_HEIGHTF / 2.0f) - 256.0f;
 const float bottom = (DISPLAY_HEIGHTF / 2.0f) + 256.0f;
 
 GLuint testTexture;
-
 Renderer_t *testRenderer;
 
 void DW_initGame() {
