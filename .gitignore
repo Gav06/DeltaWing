@@ -3,3 +3,4 @@ debug
 .vscode
 DeltaWing.code-workspace
 cmake-build-debug
+.idea
