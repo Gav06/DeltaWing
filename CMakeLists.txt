@@ -35,7 +35,6 @@ set( SOURCES
 	"src/renderer.c"
 	"src/renderer.h"
 	"src/scenes.h"
-	"src/stb_image.h"
 	"src/util.h"
 	"src/util.c"
 	"src/globals.h"
